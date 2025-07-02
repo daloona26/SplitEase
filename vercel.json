@@ -1,0 +1,63 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/backend/src/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/frontend/dist/$1"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET,POST,PUT,DELETE,OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "X-Requested-With, Content-Type, Authorization"
+        }
+      ]
+    }
+  ],
+  "builds": [
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    },
+    {
+      "src": "backend/src/index.js",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": [
+          "backend/src/db.js",
+          "backend/src/middleware/**",
+          "backend/src/routes/**",
+          "backend/src/utils/**",
+          "backend/package.json",
+          "backend/node_modules/**"
+        ]
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/backend/src/index.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/dist/$1"
+    }
+  ],
+  "installDependencies": true,
+  "installCommand": "npm install --prefix frontend && npm install --prefix backend"
+}
