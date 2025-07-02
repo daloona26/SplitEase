@@ -1,24 +1,4 @@
 {
-  "build": {
-    "env": {
-      "VITE_PAYPAL_CLIENT_ID": "@vite_paypal_client_id",
-      "VITE_PAYPAL_MONTHLY_PLAN_ID": "@vite_paypal_monthly_plan_id",
-      "VITE_PAYPAL_YEARLY_PLAN_ID": "@vite_paypal_yearly_plan_id",
-      "VITE_BACKEND_URL": "@vite_backend_url",
-      "NODE_ENV": "production",
-      "DATABASE_URL": "@database_url",
-      "JWT_SECRET": "@jwt_secret",
-      "PAYPAL_CLIENT_ID": "@paypal_client_id",
-      "PAYPAL_CLIENT_SECRET": "@paypal_client_secret",
-      "FRONTEND_URL": "@frontend_url",
-      "EMAIL_HOST": "@email_host",
-      "EMAIL_PORT": "@email_port",
-      "EMAIL_USER": "@email_user",
-      "EMAIL_PASS": "@email_pass",
-      "EMAIL_FROM": "@email_from",
-      "PAYPAL_WEBHOOK_ID": "@paypal_webhook_id"
-    }
-  },
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -40,5 +20,6 @@
         }
       ]
     }
-  ]
+  ],
+  "installCommand": "npm install --prefix frontend && npm install --prefix backend"
 }
