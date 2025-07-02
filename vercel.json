@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/backend/src/index.js" 
+      "destination": "/backend/src/index.js"
     }
   ],
   "headers": [
@@ -30,7 +30,7 @@
       }
     },
     {
-      "src": "backend/src/index.js", 
+      "src": "backend/src/index.js",
       "use": "@vercel/node",
       "config": {
         "includeFiles": [
@@ -42,6 +42,16 @@
           "backend/node_modules/**"
         ]
       }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/backend/src/index.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/$1"
     }
   ],
   "installCommand": "npm install --prefix frontend && npm install --prefix backend"
