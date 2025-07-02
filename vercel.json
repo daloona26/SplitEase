@@ -27,7 +27,7 @@
       "use": "@vercel/static-build",
       "config": {
         "distDir": "dist",
-        "buildCommand": "npm run build" // <--- EXPLICITLY RUNS 'npm run build' INSIDE 'frontend/'
+        "buildCommand": "npm run build"
       }
     },
     {
