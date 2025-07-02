@@ -3,10 +3,6 @@
     {
       "source": "/api/(.*)",
       "destination": "/backend/src/$1"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/$1"
     }
   ],
   "headers": [
@@ -35,33 +31,8 @@
     },
     {
       "src": "backend/src/index.js",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": [
-          "backend/src/db.js",
-          "backend/src/middleware/**",
-          "backend/src/routes/**",
-          "backend/src/utils/**",
-          "backend/package.json",
-          "backend/node_modules/**"
-        ]
-      }
+      "use": "@vercel/node"
     }
   ],
-  "installCommand": "npm install --prefix frontend && npm install --prefix backend",
-  "routes": [
-  
-    {
-      "src": "/",
-      "dest": "/frontend/dist/index.html"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "/backend/src/index.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/frontend/dist/$1" 
-    }
-  ]
+  "installCommand": "npm install --prefix frontend && npm install --prefix backend"
 }
