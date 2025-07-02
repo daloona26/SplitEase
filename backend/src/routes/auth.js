@@ -380,12 +380,10 @@ router.post("/forgot-password", async (req, res) => {
 
     if (!user) {
       // For security, always return a generic success message even if email not found
-      return res
-        .status(200)
-        .json({
-          message:
-            "If an account with that email exists, a password reset link has been sent.",
-        });
+      return res.status(200).json({
+        message:
+          "If an account with that email exists, a password reset link has been sent.",
+      });
     }
 
     // Generate a unique token
@@ -422,20 +420,15 @@ router.post("/forgot-password", async (req, res) => {
     );
 
     if (emailSent) {
-      res
-        .status(200)
-        .json({
-          message:
-            "If an account with that email exists, a password reset link has been sent.",
-        });
+      res.status(200).json({
+        message:
+          "If an account with that email exists, a password reset link has been sent.",
+      });
     } else {
       console.error("Failed to send password reset email.");
-      res
-        .status(500)
-        .json({
-          message:
-            "Failed to send password reset email. Please try again later.",
-        });
+      res.status(500).json({
+        message: "Failed to send password reset email. Please try again later.",
+      });
     }
   } catch (error) {
     console.error("Forgot password error:", error);
@@ -477,12 +470,9 @@ router.post("/reset-password", async (req, res) => {
 
     // Check if token has expired
     if (new Date(user.password_reset_expires) < new Date()) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Password reset token has expired. Please request a new one.",
-        });
+      return res.status(400).json({
+        message: "Password reset token has expired. Please request a new one.",
+      });
     }
 
     const passwordHash = await hashPassword(newPassword);

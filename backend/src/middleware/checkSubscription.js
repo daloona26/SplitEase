@@ -43,12 +43,10 @@ const checkSubscription = async (req, res, next) => {
       console.log(
         `SUBSCRIPTION CHECK: User ID ${req.user.id} is NOT subscribed and trial is NOT active. Blocking.`
       );
-      return res
-        .status(403)
-        .json({
-          message:
-            "Subscription or active trial required to access this feature.",
-        });
+      return res.status(403).json({
+        message:
+          "Subscription or active trial required to access this feature.",
+      });
     }
 
     // If subscribed OR on an active trial, proceed
