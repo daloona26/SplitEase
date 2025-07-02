@@ -2,17 +2,14 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/backend/src/index.js"
+      "destination": "/backend/src/index.js" 
     }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        },
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
         {
           "key": "Access-Control-Allow-Methods",
           "value": "GET,POST,PUT,DELETE,OPTIONS"
@@ -33,7 +30,7 @@
       }
     },
     {
-      "src": "backend/src/index.js",
+      "src": "backend/src/index.js", 
       "use": "@vercel/node",
       "config": {
         "includeFiles": [
@@ -47,19 +44,5 @@
       }
     }
   ],
-  "installCommand": "npm install --prefix frontend && npm install --prefix backend",
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/backend/src/index.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/frontend/dist/$1"
-    },
-    {
-      "src": "/",
-      "dest": "/frontend/dist/index.html"
-    }
-  ]
+  "installCommand": "npm install --prefix frontend && npm install --prefix backend"
 }
