@@ -58,6 +58,5 @@
       "dest": "/frontend/dist/$1"
     }
   ],
-  "installDependencies": true,
   "installCommand": "npm install --prefix frontend && npm install --prefix backend"
 }
