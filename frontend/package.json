@@ -1,31 +1,31 @@
 {
-   "name": "splitease",
-   "private": true,
-   "version": "0.0.0",
-   "type": "module",
-   "scripts": {
-      "dev": "vite",
-      "build": "tsc && vite build",
-      "preview": "vite preview"
-   },
-   "dependencies": {
-      "@paypal/react-paypal-js": "^8.1.3",
-      "axios": "^1.10.0",
-      "bcryptjs": "^2.4.3",
-      "lucide-react": "^0.244.0",
-      "react": "^18.2.0",
-      "react-dom": "^18.2.0",
-      "react-router-dom": "^6.8.1"
-   },
-   "devDependencies": {
-      "@types/better-sqlite3": "^7.6.8",
-      "@types/react": "^18.0.37",
-      "@types/react-dom": "^18.0.11",
-      "@vitejs/plugin-react": "^4.0.0",
-      "autoprefixer": "^10.4.14",
-      "postcss": "^8.4.24",
-      "tailwindcss": "^3.3.2",
-      "typescript": "^5.0.2",
-      "vite": "^4.3.9"
-   }
+  "name": "splitease",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "chmod +x node_modules/.bin/vite && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@paypal/react-paypal-js": "^8.1.3",
+    "axios": "^1.10.0",
+    "bcryptjs": "^2.4.3",
+    "lucide-react": "^0.244.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.8.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/react": "^18.0.37",
+    "@types/react-dom": "^18.0.11",
+    "@vitejs/plugin-react": "^4.0.0",
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.24",
+    "tailwindcss": "^3.3.2",
+    "typescript": "^5.0.2",
+    "vite": "^4.3.9"
+  }
 }

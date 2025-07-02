@@ -213,7 +213,8 @@ export default function Pricing() {
               </h3>
               <div className="mt-4">
                 <span className="text-5xl font-bold text-blue-600">
-                  ${selectedPlan === "monthly" ? "5" : "50"}
+                  ${selectedPlan === "monthly" ? "5" : "30"}{" "}
+                  {/* Changed from "50" to "30" */}
                 </span>
                 <span className="text-gray-600">
                   /{selectedPlan === "monthly" ? "month" : "year"}
@@ -221,7 +222,7 @@ export default function Pricing() {
               </div>
               {selectedPlan === "yearly" && (
                 <div className="text-sm text-green-600 font-medium mt-2">
-                  Save $10 per year!
+                  Save $30 per year! {/* Updated save message */}
                 </div>
               )}
             </div>
