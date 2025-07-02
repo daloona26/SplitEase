@@ -6,7 +6,7 @@
     },
     {
       "source": "/(.*)",
-      "destination": "/$1" 
+      "destination": "/$1"
     }
   ],
   "headers": [
@@ -48,5 +48,20 @@
       }
     }
   ],
-  "installCommand": "npm install --prefix frontend && npm install --prefix backend"
+  "installCommand": "npm install --prefix frontend && npm install --prefix backend",
+  "routes": [
+  
+    {
+      "src": "/",
+      "dest": "/frontend/dist/index.html"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/backend/src/index.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/dist/$1" 
+    }
+  ]
 }
