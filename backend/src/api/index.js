@@ -74,44 +74,48 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Load routes after basic setup to catch any route parsing errors
-try {
-  console.log("Loading auth routes...");
-  const authRoutes = require("../routes/auth");
-  app.use("/auth", authRoutes);
-  console.log("Auth routes loaded successfully");
+// Load routes individually to identify which one is causing the path-to-regexp error
+const routesToLoad = [
+  { name: "auth", path: "../routes/auth", mount: "/auth" },
+  { name: "groups", path: "../routes/groups", mount: "/groups" },
+  { name: "expenses", path: "../routes/expenses", mount: "/expenses" },
+  { name: "paypal", path: "../routes/paypal", mount: "/paypal" },
+  { name: "activity", path: "../routes/activity", mount: "/activity" },
+];
 
-  console.log("Loading group routes...");
-  const groupRoutes = require("../routes/groups");
-  app.use("/groups", groupRoutes);
-  console.log("Group routes loaded successfully");
+const loadedRoutes = [];
+const failedRoutes = [];
 
-  console.log("Loading expenses routes...");
-  const expensesRoutes = require("../routes/expenses");
-  app.use("/expenses", expensesRoutes);
-  console.log("Expenses routes loaded successfully");
+for (const route of routesToLoad) {
+  try {
+    console.log(`Loading ${route.name} routes...`);
+    const routeModule = require(route.path);
+    app.use(route.mount, routeModule);
+    console.log(`${route.name} routes loaded successfully`);
+    loadedRoutes.push(route.name);
+  } catch (error) {
+    console.error(`ERROR loading ${route.name} routes:`, error.message);
+    console.error(`Stack trace for ${route.name}:`, error.stack);
+    failedRoutes.push({ name: route.name, error: error.message });
 
-  console.log("Loading paypal routes...");
-  const paypalRoutes = require("../routes/paypal");
-  app.use("/paypal", paypalRoutes);
-  console.log("PayPal routes loaded successfully");
-
-  console.log("Loading activity routes...");
-  const activityRoutes = require("../routes/activity");
-  app.use("/activity", activityRoutes);
-  console.log("Activity routes loaded successfully");
-} catch (error) {
-  console.error("Error loading routes:", error.message);
-  console.error("Stack trace:", error.stack);
-
-  // Still start the server even if some routes fail
-  app.get("/error", (req, res) => {
-    res.status(500).json({
-      message: "Some routes failed to load",
-      error: error.message,
+    // Create a fallback route for the failed module
+    app.use(route.mount, (req, res) => {
+      res.status(503).json({
+        message: `${route.name} routes are temporarily unavailable`,
+        error: error.message,
+      });
     });
-  });
+  }
 }
+
+// Add a debug endpoint to show which routes loaded
+app.get("/debug/routes", (req, res) => {
+  res.json({
+    loadedRoutes,
+    failedRoutes,
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
