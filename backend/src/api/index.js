@@ -18,23 +18,29 @@ const activityRoutes = require("../routes/activity");
 
 const app = express();
 
+// --- CORS Configuration ---
 let allowedOrigin;
 if (process.env.NODE_ENV === "production") {
-  // In production, ensure FRONTEND_URL is set. Fallback to a warning if not.
-  allowedOrigin = process.env.FRONTEND_URL;
-  if (!allowedOrigin) {
+  // Log the actual value of FRONTEND_URL in production for debugging Vercel deployments
+  console.log(
+    `CORS: Production FRONTEND_URL env var: ${process.env.FRONTEND_URL}`
+  );
+
+  // Use the environment variable, but provide a direct fallback to your known frontend URL
+  // if the environment variable is not set or empty.
+  allowedOrigin =
+    process.env.FRONTEND_URL || "https://splitease-pearl.vercel.app";
+
+  if (!process.env.FRONTEND_URL) {
     console.warn(
-      "CORS: WARNING! FRONTEND_URL environment variable is not set in production. CORS might not work correctly."
+      "CORS: WARNING! FRONTEND_URL environment variable was not found in production. Using hardcoded fallback: https://splitease-pearl.vercel.app"
     );
-    // As a temporary measure for debugging, you might set it to a specific URL or '*'
-    // For security, it's best to explicitly set the correct URL in Vercel environment variables.
-    // allowedOrigin = "https://splitease-pearl.vercel.app"; // Uncomment for strict debugging
   }
 } else {
   allowedOrigin = "http://localhost:5173"; // Allow Vite's default dev server port locally
 }
 
-console.log(`CORS: Allowing origin: ${allowedOrigin}`); // DEBUG: Log allowed origin
+console.log(`CORS: Final allowed origin configured: ${allowedOrigin}`); // DEBUG: Log final allowed origin
 
 const corsOptions = {
   origin: allowedOrigin,
@@ -49,20 +55,19 @@ app.use(cors(corsOptions));
 // --- Middleware for PayPal webhooks (MUST be before general JSON parser) ---
 // This middleware will only apply to requests matching exactly /paypal/webhook
 // Vercel routes /api/paypal/webhook to /paypal/webhook within this app's context
-// Note: Changed to /api/paypal/webhook to match the new API prefix convention
-app.use("/api/paypal/webhook", bodyParser.raw({ type: "application/json" }));
+app.use("/paypal/webhook", bodyParser.raw({ type: "application/json" })); // <--- REMOVED /api prefix
 
 // --- General JSON body parser middleware ---
 // This should come after raw body parser for webhooks
 app.use(express.json());
 
 // API Routes (mounted relative to this app's base path, which Vercel treats as /api/)
-// IMPORTANT: Added '/api' prefix to all main route mounts to match frontend's BACKEND_URL
-app.use("/api/auth", authRoutes);
-app.use("/api/groups", groupRoutes);
-app.use("/api/expenses", expensesRoutes);
-app.use("/api/paypal", paypalRoutes);
-app.use("/api/activity", activityRoutes);
+// <--- REMOVED /api prefix from all these routes
+app.use("/auth", authRoutes);
+app.use("/groups", groupRoutes);
+app.use("/expenses", expensesRoutes);
+app.use("/paypal", paypalRoutes);
+app.use("/activity", activityRoutes);
 
 // Basic route for the root of this API to confirm backend is running
 // This will be accessible at https://your-backend-url.vercel.app/
@@ -73,6 +78,7 @@ app.get("/", (req, res) => {
 // Basic route to check /api/ path on Vercel
 // This will be accessible at https://your-backend-url.vercel.app/api
 app.get("/api", (req, res) => {
+  // <--- This route is now correct for /api
   res
     .status(200)
     .json({ message: "SplitEase Backend API is running at /api!" });
