@@ -26,7 +26,6 @@ import {
   Shield,
 } from "lucide-react";
 
-// Interfaces
 interface Group {
   id: string;
   name: string;
@@ -62,7 +61,6 @@ export default function DashboardEnhanced() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  // State for fetched data
   const [groups, setGroups] = useState<Group[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     totalGroups: 0,
@@ -72,7 +70,6 @@ export default function DashboardEnhanced() {
   });
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
 
-  // UI State
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [showEditGroup, setShowEditGroup] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
@@ -82,7 +79,6 @@ export default function DashboardEnhanced() {
     "name" | "created" | "expenses" | "amount"
   >("created");
 
-  // Form State
   const [groupForm, setGroupForm] = useState({
     name: "",
     description: "",
@@ -93,7 +89,6 @@ export default function DashboardEnhanced() {
     description: "",
   });
 
-  // Loading States
   const [loading, setLoading] = useState({
     groups: true,
     stats: true,
@@ -108,7 +103,6 @@ export default function DashboardEnhanced() {
   const [activityError, setActivityError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
 
-  // Message Box State
   const [messageBox, setMessageBox] = useState({
     show: false,
     type: "info" as MessageBoxType,
@@ -117,7 +111,6 @@ export default function DashboardEnhanced() {
     onCancel: () => {},
   });
 
-  // Function to display custom message box
   const showMessageBox = useCallback(
     (
       type: MessageBoxType,
@@ -140,7 +133,6 @@ export default function DashboardEnhanced() {
     []
   );
 
-  // Redirect if not authenticated or not subscribed/on trial
   useEffect(() => {
     if (!authLoading) {
       if (!user) {
@@ -160,7 +152,6 @@ export default function DashboardEnhanced() {
     }
   }, [user, navigate, authLoading]);
 
-  // Enhanced fetch groups with better error handling and retry logic
   const fetchGroups = useCallback(
     async (isRetry = false) => {
       if (!user) {
@@ -174,8 +165,6 @@ export default function DashboardEnhanced() {
       }
 
       try {
-        console.log("Fetching groups from API...");
-
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
 
@@ -186,8 +175,6 @@ export default function DashboardEnhanced() {
 
         clearTimeout(timeoutId);
 
-        console.log("Groups API response:", response.data);
-
         if (!Array.isArray(response.data)) {
           throw new Error("Invalid response format: expected array of groups");
         }
@@ -195,7 +182,6 @@ export default function DashboardEnhanced() {
         setGroups(response.data);
         setRetryCount(0);
 
-        // Calculate dashboard-wide statistics from fetched groups
         const totalGroups = response.data.length;
         const totalExpenses = response.data.reduce(
           (sum: number, group: Group) => sum + (group.expensesCount || 0),
@@ -217,8 +203,6 @@ export default function DashboardEnhanced() {
           totalMembers,
         });
       } catch (err: any) {
-        console.error("Failed to fetch groups:", err);
-
         let errorMessage = "Failed to load groups.";
 
         if (err.name === "AbortError") {
@@ -261,7 +245,6 @@ export default function DashboardEnhanced() {
         setError(errorMessage);
 
         if (retryCount < 3 && (err.response?.status >= 500 || !err.response)) {
-          console.log(`Retrying fetch groups (attempt ${retryCount + 1}/3)...`);
           setRetryCount((prev) => prev + 1);
           setTimeout(() => fetchGroups(true), 2000 * (retryCount + 1));
         }
@@ -272,7 +255,6 @@ export default function DashboardEnhanced() {
     [user, navigate, retryCount, api]
   );
 
-  // Generate fallback activity from groups data
   const generateFallbackActivity = useCallback(
     (groupsData: Group[]): RecentActivity[] => {
       const fallbackActivities: RecentActivity[] = [];
@@ -316,7 +298,6 @@ export default function DashboardEnhanced() {
     []
   );
 
-  // Enhanced fetch recent activity with multiple fallbacks
   const fetchRecentActivity = useCallback(async () => {
     if (!user) {
       setLoading((prev) => ({ ...prev, activity: false }));
@@ -327,27 +308,16 @@ export default function DashboardEnhanced() {
     setActivityError("");
 
     try {
-      console.log("🔍 DASHBOARD: Fetching recent activity...");
-
       const response = await api.get("/activity/recent?limit=10", {
         timeout: 3000,
       });
 
-      console.log("🔍 DASHBOARD: Activity response:", response.data);
-
       if (Array.isArray(response.data)) {
         setRecentActivity(response.data);
-        console.log("🔍 DASHBOARD: Successfully loaded activity from API");
       } else {
-        console.warn(
-          "🔍 DASHBOARD: Invalid activity response format, using fallback"
-        );
         setRecentActivity(generateFallbackActivity(groups));
       }
     } catch (err: any) {
-      console.error("🔍 DASHBOARD: Failed to fetch recent activity:", err);
-
-      console.log("🔍 DASHBOARD: Using fallback activity from groups data");
       setRecentActivity(generateFallbackActivity(groups));
 
       if (err.response?.status === 404) {
@@ -362,7 +332,6 @@ export default function DashboardEnhanced() {
     }
   }, [user, api, generateFallbackActivity, groups]);
 
-  // Combined initial data fetch for Dashboard
   useEffect(() => {
     const loadDashboardData = async () => {
       if (!authLoading && user) {
@@ -376,7 +345,6 @@ export default function DashboardEnhanced() {
     loadDashboardData();
   }, [authLoading, user, fetchGroups]);
 
-  // Fetch activity after groups are loaded
   useEffect(() => {
     if (
       !isLoadingInitialDashboardData &&
@@ -392,14 +360,12 @@ export default function DashboardEnhanced() {
     fetchRecentActivity,
   ]);
 
-  // Manual retry function
   const handleRetry = () => {
     setRetryCount(0);
     fetchGroups();
     fetchRecentActivity();
   };
 
-  // Enhanced create group handler
   const createGroup = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -429,7 +395,6 @@ export default function DashboardEnhanced() {
       showMessageBox("success", "Group created successfully!");
       setTimeout(() => fetchRecentActivity(), 1000);
     } catch (err: any) {
-      console.error("Failed to create group:", err);
       const errorMessage =
         err.response?.data?.message || "Failed to create group.";
       showMessageBox("error", errorMessage);
@@ -442,7 +407,6 @@ export default function DashboardEnhanced() {
     }
   };
 
-  // Prepare edit group modal
   const prepareEditGroup = useCallback((group: Group) => {
     setSelectedGroup(group);
     setEditGroupForm({
@@ -454,7 +418,6 @@ export default function DashboardEnhanced() {
     setShowEditGroup(true);
   }, []);
 
-  // Handle edit group submission
   const handleEditGroup = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -495,7 +458,6 @@ export default function DashboardEnhanced() {
       showMessageBox("success", "Group updated successfully!");
       setTimeout(() => fetchRecentActivity(), 1000);
     } catch (err: any) {
-      console.error("Failed to update group:", err);
       const errorMessage =
         err.response?.data?.message || "Failed to update group.";
       showMessageBox("error", errorMessage);
@@ -504,7 +466,6 @@ export default function DashboardEnhanced() {
     }
   };
 
-  // Handle delete group
   const handleDeleteGroup = useCallback(
     async (groupId: string) => {
       setDeletingGroup(true);
@@ -518,7 +479,6 @@ export default function DashboardEnhanced() {
         showMessageBox("success", "Group deleted successfully!");
         setTimeout(() => fetchRecentActivity(), 1000);
       } catch (err: any) {
-        console.error("Failed to delete group:", err);
         const errorMessage =
           err.response?.data?.message || "Failed to delete group.";
         showMessageBox("error", errorMessage);
@@ -529,7 +489,6 @@ export default function DashboardEnhanced() {
     [api, groups, showMessageBox, fetchRecentActivity]
   );
 
-  // Filter and sort groups for display
   const filteredAndSortedGroups = groups
     .filter(
       (group) =>
@@ -554,7 +513,6 @@ export default function DashboardEnhanced() {
       }
     });
 
-  // Get activity icon based on type
   const getActivityIcon = (type: string) => {
     switch (type) {
       case "expense":
@@ -568,7 +526,6 @@ export default function DashboardEnhanced() {
     }
   };
 
-  // Format relative time
   const formatRelativeTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -583,7 +540,6 @@ export default function DashboardEnhanced() {
     return date.toLocaleDateString("en-US");
   };
 
-  // Render message box
   const renderMessageBox = () => {
     if (!messageBox.show) return null;
 
@@ -663,7 +619,6 @@ export default function DashboardEnhanced() {
     );
   };
 
-  // Main render: Handle global loading for dashboard
   if (authLoading || isLoadingInitialDashboardData) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -680,7 +635,6 @@ export default function DashboardEnhanced() {
     );
   }
 
-  // Handle cases where user is not authenticated or not subscribed/on trial
   if (
     !user ||
     (!user.isSubscribed &&
@@ -694,7 +648,6 @@ export default function DashboardEnhanced() {
       <Navbar />
       {renderMessageBox()}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Trial Status Banners */}
         {user.isTrialActive && new Date(user.trialEndsAt || 0) > new Date() && (
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 text-blue-800 p-6 mb-8 rounded-2xl shadow-lg backdrop-blur-sm border border-blue-200/50">
             <div className="flex items-center">
@@ -750,7 +703,6 @@ export default function DashboardEnhanced() {
             </div>
           )}
 
-        {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 bg-white/80 backdrop-blur-sm p-8 rounded-3xl shadow-2xl border border-white/20">
           <div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent mb-3">
@@ -773,7 +725,6 @@ export default function DashboardEnhanced() {
           </button>
         </div>
 
-        {/* Enhanced Error Display with Retry */}
         {error && (
           <div className="bg-red-50/90 backdrop-blur-sm border-2 border-red-200 text-red-700 px-6 py-4 rounded-2xl mb-8 shadow-lg">
             <div className="flex items-center justify-between">
@@ -793,7 +744,6 @@ export default function DashboardEnhanced() {
         )}
 
         <div className="min-h-[50vh]">
-          {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div className="bg-white/80 backdrop-blur-sm p-8 rounded-3xl shadow-xl border border-white/20 transform transition-all duration-300 hover:scale-105 hover:shadow-2xl">
               <div className="flex items-center">
@@ -861,10 +811,8 @@ export default function DashboardEnhanced() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Groups Section */}
             <div className="lg:col-span-2">
               <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20">
-                {/* Groups Header */}
                 <div className="p-8 border-b border-slate-200/50 flex flex-col sm:flex-row items-start sm:items-center justify-between">
                   <h2 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent mb-4 sm:mb-0">
                     Your Groups
@@ -918,7 +866,6 @@ export default function DashboardEnhanced() {
                   </div>
                 </div>
 
-                {/* Groups List */}
                 <div className="p-8">
                   {filteredAndSortedGroups.length === 0 && !error && (
                     <div className="text-center py-16">
@@ -1032,7 +979,7 @@ export default function DashboardEnhanced() {
                                     e.stopPropagation();
                                     showMessageBox(
                                       "confirm",
-                                      `Are you sure you want to delete "${group.name}"? This action cannot be undone.`,
+                                      `Are you sure you want to delete \"${group.name}\"? This action cannot be undone.`,
                                       () => handleDeleteGroup(group.id)
                                     );
                                   }}
@@ -1060,7 +1007,6 @@ export default function DashboardEnhanced() {
               </div>
             </div>
 
-            {/* Recent Activity Section */}
             <div className="lg:col-span-1">
               <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20">
                 <div className="p-8 border-b border-slate-200/50">
@@ -1134,7 +1080,6 @@ export default function DashboardEnhanced() {
           </div>
         </div>
 
-        {/* Create Group Modal */}
         {showCreateGroup && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-white/90 backdrop-blur-sm rounded-3xl max-w-md w-full p-8 shadow-2xl transform transition-all duration-300 scale-100 border border-white/20">
@@ -1210,7 +1155,6 @@ export default function DashboardEnhanced() {
           </div>
         )}
 
-        {/* Edit Group Modal */}
         {showEditGroup && selectedGroup && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-white/90 backdrop-blur-sm rounded-3xl max-w-md w-full p-8 shadow-2xl transform transition-all duration-300 scale-100 border border-white/20">

@@ -50,7 +50,6 @@ export default function Account() {
         response.data.message || "Profile updated successfully!"
       );
     } catch (err: any) {
-      console.error("Failed to update profile:", err);
       setError(err.response?.data?.message || "Failed to update profile.");
     } finally {
       setLoadingUpdate(false);

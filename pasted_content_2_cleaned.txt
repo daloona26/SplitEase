@@ -29,7 +29,6 @@ import {
   Zap,
 } from "lucide-react";
 
-// Interfaces
 interface Member {
   id: string;
   name: string;
@@ -119,7 +118,6 @@ export default function GroupEnhanced() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // State for fetched data
   const [groupDetails, setGroupDetails] = useState<GroupDetails | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -132,7 +130,6 @@ export default function GroupEnhanced() {
     categoriesCount: 0,
   });
 
-  // UI State
   const [activeTab, setActiveTab] = useState<TabType>("expenses");
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showEditExpense, setShowEditExpense] = useState(false);
@@ -141,7 +138,6 @@ export default function GroupEnhanced() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
 
-  // Form State
   const [newExpense, setNewExpense] = useState({
     description: "",
     amount: "",
@@ -171,7 +167,6 @@ export default function GroupEnhanced() {
 
   const [newMemberEmail, setNewMemberEmail] = useState("");
 
-  // Filter State
   const [filters, setFilters] = useState({
     category: "all",
     startDate: "",
@@ -179,7 +174,6 @@ export default function GroupEnhanced() {
     search: "",
   });
 
-  // Loading States
   const [loading, setLoading] = useState({
     group: true,
     expenses: true,
@@ -188,7 +182,6 @@ export default function GroupEnhanced() {
     categories: true,
   });
 
-  // Action Loading States
   const [actionLoading, setActionLoading] = useState({
     addExpense: false,
     editExpense: false,
@@ -200,10 +193,8 @@ export default function GroupEnhanced() {
     updateGroup: false,
   });
 
-  // Error state
   const [error, setError] = useState("");
 
-  // Message Box State
   const [messageBox, setMessageBox] = useState({
     show: false,
     type: "info" as "info" | "success" | "error" | "confirm",
@@ -212,7 +203,6 @@ export default function GroupEnhanced() {
     onCancel: () => {},
   });
 
-  // Function to display custom message box
   const showMessageBox = useCallback(
     (
       type: "info" | "success" | "error" | "confirm",
@@ -235,7 +225,6 @@ export default function GroupEnhanced() {
     []
   );
 
-  // Helper function to format participant names for display
   const getParticipantNamesForDisplay = useCallback(
     (participants: Array<{ user_id: string; name: string }>): string => {
       if (!participants || participants.length === 0) {
@@ -249,7 +238,6 @@ export default function GroupEnhanced() {
     []
   );
 
-  // Helper function to format payer names for display
   const getPayerNamesForDisplay = useCallback((payments: Payment[]): string => {
     if (!payments || payments.length === 0) {
       return "No payers";
@@ -260,7 +248,6 @@ export default function GroupEnhanced() {
       .join(", ");
   }, []);
 
-  // Helper function to calculate custom shares total
   const calculateCustomSharesTotal = useCallback(
     (customShares: Record<string, number>) => {
       return Object.values(customShares).reduce(
@@ -271,7 +258,6 @@ export default function GroupEnhanced() {
     []
   );
 
-  // Helper function to validate custom shares
   const validateCustomShares = useCallback(
     (
       splitType: SplitType,
@@ -295,7 +281,6 @@ export default function GroupEnhanced() {
     [calculateCustomSharesTotal]
   );
 
-  // Helper function to calculate total paid amount from payments array
   const calculateTotalPaid = useCallback(
     (payments: { userId: string; amountPaid: string }[]) => {
       return payments.reduce(
@@ -306,7 +291,6 @@ export default function GroupEnhanced() {
     []
   );
 
-  // Effect for initial authentication and subscription/trial check
   useEffect(() => {
     if (!user) {
       navigate("/login");
@@ -324,7 +308,6 @@ export default function GroupEnhanced() {
     }
   }, [user, navigate]);
 
-  // Enhanced fetch group details with better error handling
   const fetchGroupDetails = useCallback(async () => {
     if (!user || !groupId || !api) return;
     setLoading((prev) => ({ ...prev, group: true }));
@@ -334,7 +317,6 @@ export default function GroupEnhanced() {
       const response = await api.get(`/groups/${groupId}`);
       setGroupDetails(response.data);
     } catch (err: any) {
-      console.error("Failed to fetch group details:", err);
       const errorMessage =
         err.response?.data?.message || "Failed to load group details.";
       setError(errorMessage);
@@ -350,7 +332,6 @@ export default function GroupEnhanced() {
     }
   }, [user, groupId, api, showMessageBox, navigate]);
 
-  // Enhanced fetch expenses with better error handling
   const fetchExpenses = useCallback(async () => {
     if (!user || !groupId || !api) return;
     setLoading((prev) => ({ ...prev, expenses: true }));
@@ -378,7 +359,6 @@ export default function GroupEnhanced() {
       );
       setCategories(response.data.categories || []);
     } catch (err: any) {
-      console.error("Failed to fetch expenses:", err);
       showMessageBox(
         "error",
         err.response?.data?.message || "Failed to load expenses."
@@ -388,7 +368,6 @@ export default function GroupEnhanced() {
     }
   }, [user, groupId, filters, api, showMessageBox]);
 
-  // Enhanced fetch members with better error handling
   const fetchMembers = useCallback(async () => {
     if (!user || !groupId || !api) return;
     setLoading((prev) => ({ ...prev, members: true }));
@@ -397,7 +376,6 @@ export default function GroupEnhanced() {
       const response = await api.get(`/groups/${groupId}/members`);
       setMembers(response.data.members || []);
     } catch (err: any) {
-      console.error("Failed to fetch members:", err);
       showMessageBox(
         "error",
         err.response?.data?.message || "Failed to load members."
@@ -407,7 +385,6 @@ export default function GroupEnhanced() {
     }
   }, [user, groupId, api, showMessageBox]);
 
-  // Enhanced fetch balances with detailed debugging
   const fetchBalances = useCallback(async () => {
     if (!user || !groupId || !api) return;
     setLoading((prev) => ({ ...prev, balances: true }));
@@ -431,15 +408,9 @@ export default function GroupEnhanced() {
 
         setBalances(processedBalances);
       } else {
-        console.error(
-          "🔍 FRONTEND: Invalid balances data structure:",
-          response.data
-        );
         setBalances([]);
       }
     } catch (err: any) {
-      console.error("🔍 FRONTEND: Failed to fetch balances:", err);
-      console.error("🔍 FRONTEND: Error response:", err.response?.data);
       showMessageBox(
         "error",
         err.response?.data?.message || "Failed to load balances."
@@ -450,7 +421,6 @@ export default function GroupEnhanced() {
     }
   }, [user, groupId, api, showMessageBox]);
 
-  // Initial data fetch on component mount and when groupId or user changes
   useEffect(() => {
     if (user && groupId && api) {
       fetchGroupDetails();
@@ -459,7 +429,6 @@ export default function GroupEnhanced() {
     }
   }, [fetchGroupDetails, fetchMembers, fetchExpenses, user, groupId, api]);
 
-  // Refetch data when activeTab changes, or for expenses/balances when filters change
   useEffect(() => {
     if (activeTab === "balances") {
       fetchBalances();
@@ -470,7 +439,6 @@ export default function GroupEnhanced() {
     }
   }, [activeTab, fetchBalances, fetchExpenses, fetchMembers]);
 
-  // Add Expense Helper for payments
   const handleAddPayment = (formType: "new" | "edit") => {
     const setState = formType === "new" ? setNewExpense : setEditExpense;
     setState((prev) => ({
@@ -505,7 +473,6 @@ export default function GroupEnhanced() {
     }));
   };
 
-  // Enhanced add expense handler
   const addExpense = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -590,7 +557,6 @@ export default function GroupEnhanced() {
       fetchExpenses();
       fetchBalances();
     } catch (err: any) {
-      console.error("Failed to add expense:", err);
       showMessageBox(
         "error",
         err.response?.data?.message || "Failed to add expense."
@@ -600,7 +566,6 @@ export default function GroupEnhanced() {
     }
   };
 
-  // Enhanced edit expense handler
   const editExpenseHandler = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -676,7 +641,6 @@ export default function GroupEnhanced() {
       fetchExpenses();
       fetchBalances();
     } catch (err: any) {
-      console.error("Failed to edit expense:", err);
       showMessageBox(
         "error",
         err.response?.data?.message || "Failed to update expense."
@@ -686,7 +650,6 @@ export default function GroupEnhanced() {
     }
   };
 
-  // Delete expense handler
   const deleteExpense = async (expenseId: string) => {
     setActionLoading((prev) => ({ ...prev, deleteExpense: true }));
 
@@ -696,7 +659,6 @@ export default function GroupEnhanced() {
       fetchExpenses();
       fetchBalances();
     } catch (err: any) {
-      console.error("Failed to delete expense:", err);
       showMessageBox(
         "error",
         err.response?.data?.message || "Failed to delete expense."
@@ -706,7 +668,6 @@ export default function GroupEnhanced() {
     }
   };
 
-  // Redistribute expense handler
   const redistributeExpense = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -757,7 +718,6 @@ export default function GroupEnhanced() {
       fetchExpenses();
       fetchBalances();
     } catch (err: any) {
-      console.error("Failed to redistribute expense:", err);
       showMessageBox(
         "error",
         err.response?.data?.message || "Failed to redistribute expense."
@@ -767,7 +727,6 @@ export default function GroupEnhanced() {
     }
   };
 
-  // Add member handler
   const addMember = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -787,7 +746,6 @@ export default function GroupEnhanced() {
       setNewMemberEmail("");
       fetchMembers();
     } catch (err: any) {
-      console.error("Failed to add member:", err);
       showMessageBox(
         "error",
         err.response?.data?.message || "Failed to add member."
@@ -797,7 +755,6 @@ export default function GroupEnhanced() {
     }
   };
 
-  // Remove member handler
   const removeMember = async (memberId: string) => {
     const targetMember = members.find((m) => m.id === memberId);
 
@@ -818,7 +775,6 @@ export default function GroupEnhanced() {
           showMessageBox("success", "Member removed successfully!");
           fetchMembers();
         } catch (err: any) {
-          console.error("Failed to remove member:", err);
           showMessageBox(
             "error",
             err.response?.data?.message || "Failed to remove member."
@@ -830,7 +786,6 @@ export default function GroupEnhanced() {
     );
   };
 
-  // Prepare edit expense form
   const prepareEditExpense = (expense: Expense) => {
     const customSharesMap: Record<string, number> = {};
     let detectedSplitType: SplitType = "equal";
@@ -881,7 +836,6 @@ export default function GroupEnhanced() {
     setShowEditExpense(true);
   };
 
-  // Prepare redistribute expense form
   const prepareRedistributeExpense = (expense: Expense) => {
     setRedistributeForm({
       participantUserIds: expense.participants.map((p) => p.user_id),
@@ -892,7 +846,6 @@ export default function GroupEnhanced() {
     setShowRedistributeExpense(true);
   };
 
-  // Handle custom share change for new expense
   const handleCustomShareChange = (
     formType: "new" | "edit" | "redistribute",
     userId: string,
@@ -918,7 +871,6 @@ export default function GroupEnhanced() {
     }
   };
 
-  // Handle participant toggle
   const handleParticipantToggle = (
     formType: "new" | "edit" | "redistribute",
     userId: string
@@ -956,7 +908,6 @@ export default function GroupEnhanced() {
     }
   };
 
-  // Auto-distribute equal amounts for payments
   const autoDistributePayments = (formType: "new" | "edit") => {
     const currentForm = formType === "new" ? newExpense : editExpense;
     const setState = formType === "new" ? setNewExpense : setEditExpense;
@@ -975,7 +926,6 @@ export default function GroupEnhanced() {
     }
   };
 
-  // Auto-distribute equal shares for participants
   const autoDistributeShares = (formType: "new" | "edit" | "redistribute") => {
     const currentForm =
       formType === "new"
@@ -1024,7 +974,6 @@ export default function GroupEnhanced() {
     }
   };
 
-  // Render helper functions
   const renderLoadingSpinner = () => (
     <div className="flex justify-center items-center py-12">
       <div className="relative">
@@ -1122,7 +1071,6 @@ export default function GroupEnhanced() {
 
   const renderExpensesTab = () => (
     <div className="space-y-6">
-      {/* Filters */}
       {showFilters && (
         <div className="bg-white/60 backdrop-blur-sm p-6 rounded-2xl border-2 border-white/20 shadow-lg">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1189,7 +1137,6 @@ export default function GroupEnhanced() {
         </div>
       )}
 
-      {/* Expenses List */}
       {loading.expenses ? (
         renderLoadingSpinner()
       ) : expenses.length === 0 ? (
@@ -1345,10 +1292,9 @@ export default function GroupEnhanced() {
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          )}
 
-          {/* Balance verification summary */}
           <div className="bg-blue-50/90 backdrop-blur-sm p-6 rounded-2xl border-2 border-blue-200 shadow-lg">
             <h4 className="font-bold text-blue-900 mb-3 text-lg">
               Balance Verification
@@ -1447,7 +1393,6 @@ export default function GroupEnhanced() {
 
   const renderStatsTab = () => (
     <div className="space-y-8">
-      {/* Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl border-2 border-white/20 shadow-xl text-center">
           <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
@@ -1495,7 +1440,6 @@ export default function GroupEnhanced() {
         </div>
       </div>
 
-      {/* Categories Breakdown */}
       {categories.length > 0 && (
         <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl border-2 border-white/20 shadow-xl">
           <h3 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent mb-6">
@@ -1531,7 +1475,6 @@ export default function GroupEnhanced() {
     </div>
   );
 
-  // Main render
   if (loading.group) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -1577,11 +1520,9 @@ export default function GroupEnhanced() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <Navbar />
 
-      {/* Message Box */}
       {renderMessageBox()}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Group Header */}
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 p-8 mb-8">
           <div className="flex justify-between items-start">
             <div>
@@ -1634,7 +1575,6 @@ export default function GroupEnhanced() {
           </div>
         </div>
 
-        {/* Tabs */}
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 mb-8">
           <div className="border-b border-slate-200/50">
             <nav className="flex space-x-8 px-8">
@@ -1669,7 +1609,6 @@ export default function GroupEnhanced() {
         </div>
       </div>
 
-      {/* Add Expense Modal */}
       {showAddExpense && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto border border-white/20">
@@ -1679,7 +1618,6 @@ export default function GroupEnhanced() {
               </h2>
             </div>
             <form onSubmit={addExpense} className="p-8 space-y-6">
-              {/* Basic Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
@@ -1743,7 +1681,6 @@ export default function GroupEnhanced() {
                 </select>
               </div>
 
-              {/* Who Paid */}
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <label className="block text-sm font-semibold text-slate-700">
@@ -1834,7 +1771,6 @@ export default function GroupEnhanced() {
                 </div>
               </div>
 
-              {/* Split Type */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-4">
                   How to Split?
@@ -1876,7 +1812,6 @@ export default function GroupEnhanced() {
                 </div>
               </div>
 
-              {/* Participants */}
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <label className="block text-sm font-semibold text-slate-700">
@@ -1968,7 +1903,6 @@ export default function GroupEnhanced() {
                 )}
               </div>
 
-              {/* Actions */}
               <div className="flex justify-end space-x-4 pt-8 border-t border-slate-200/50">
                 <button
                   type="button"
@@ -1993,7 +1927,6 @@ export default function GroupEnhanced() {
         </div>
       )}
 
-      {/* Add Member Modal */}
       {showAddMember && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl max-w-md w-full mx-4 border border-white/20">
@@ -2040,7 +1973,6 @@ export default function GroupEnhanced() {
         </div>
       )}
 
-      {/* Edit Expense Modal */}
       {showEditExpense && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto border border-white/20">
@@ -2050,7 +1982,6 @@ export default function GroupEnhanced() {
               </h2>
             </div>
             <form onSubmit={editExpenseHandler} className="p-8 space-y-6">
-              {/* Basic Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
@@ -2114,7 +2045,6 @@ export default function GroupEnhanced() {
                 </select>
               </div>
 
-              {/* Who Paid */}
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <label className="block text-sm font-semibold text-slate-700">
@@ -2205,7 +2135,6 @@ export default function GroupEnhanced() {
                 </div>
               </div>
 
-              {/* Split Type */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-4">
                   How to Split?
@@ -2247,7 +2176,6 @@ export default function GroupEnhanced() {
                 </div>
               </div>
 
-              {/* Participants */}
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <label className="block text-sm font-semibold text-slate-700">
@@ -2339,7 +2267,6 @@ export default function GroupEnhanced() {
                 )}
               </div>
 
-              {/* Actions */}
               <div className="flex justify-end space-x-4 pt-8 border-t border-slate-200/50">
                 <button
                   type="button"
@@ -2364,7 +2291,6 @@ export default function GroupEnhanced() {
         </div>
       )}
 
-      {/* Redistribute Expense Modal */}
       {showRedistributeExpense && selectedExpense && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto border border-white/20">
@@ -2378,7 +2304,6 @@ export default function GroupEnhanced() {
               </p>
             </div>
             <form onSubmit={redistributeExpense} className="p-8 space-y-6">
-              {/* Split Type for Redistribution */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-4">
                   How to Redistribute?
@@ -2420,7 +2345,6 @@ export default function GroupEnhanced() {
                 </div>
               </div>
 
-              {/* Participants for Redistribution */}
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <label className="block text-sm font-semibold text-slate-700">
@@ -2519,7 +2443,6 @@ export default function GroupEnhanced() {
                 )}
               </div>
 
-              {/* Actions */}
               <div className="flex justify-end space-x-4 pt-6 border-t border-slate-200/50">
                 <button
                   type="button"
@@ -2546,3 +2469,5 @@ export default function GroupEnhanced() {
     </div>
   );
 }
+
+

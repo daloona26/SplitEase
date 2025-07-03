@@ -32,13 +32,7 @@ export default function Pricing() {
     "YOUR_YEARLY_PAYPAL_PLAN_ID_FROM_ENV_FALLBACK";
 
   // --- DEBUGGING: Log environment variables to console (keep for development, remove for production build if desired) ---
-  useEffect(() => {
-    console.log("--- Pricing.tsx Environment Variables Debug ---");
-    console.log("VITE_PAYPAL_CLIENT_ID:", PAYPAL_CLIENT_ID);
-    console.log("VITE_PAYPAL_MONTHLY_PLAN_ID:", PAYPAL_MONTHLY_PLAN_ID);
-    console.log("VITE_PAYPAL_YEARLY_PLAN_ID:", PAYPAL_YEARLY_PLAN_ID);
-    console.log("---------------------------------------------");
-  }, []); // Run once on component mount
+  useEffect(() => {}, []); // Run once on component mount
   // --- END DEBUGGING ---
 
   // PayPal SDK options for PayPalScriptProvider
@@ -79,13 +73,6 @@ export default function Pricing() {
     setLoading(true);
     setError("");
     try {
-      console.log("PayPal subscription approved:", data.subscriptionID);
-
-      // IMPORTANT: Do NOT update user.isSubscribed here directly.
-      // Rely on the backend webhook to update the database for subscription status.
-      // After PayPal redirects back, your dashboard can then refresh user status.
-      // The backend webhook for BILLING.SUBSCRIPTION.ACTIVATED will handle setting is_trial_active.
-      // The backend webhook for BILLING.SUBSCRIPTION.PAYMENT.COMPLETED will handle setting is_subscribed.
       await refreshUser(); // Fetch latest user status from backend
       navigate("/dashboard?payment_status=success"); // Redirect to dashboard with success param
     } catch (error) {

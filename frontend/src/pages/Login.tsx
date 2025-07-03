@@ -21,7 +21,6 @@ export default function Login() {
       await login(email, password);
       navigate("/dashboard");
     } catch (err: any) {
-      console.error("Login failed:", err);
       setError(err.message || "Invalid email or password.");
     } finally {
       setLoading(false);

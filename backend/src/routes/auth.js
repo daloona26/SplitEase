@@ -70,14 +70,7 @@ router.post("/signup", async (req, res) => {
       <p>Start splitting expenses easily today!</p>
       <p>The SplitEase Team</p>
     `;
-    sendEmail(user.email, welcomeSubject, welcomeText, welcomeHtml)
-      .then((sent) => {
-        if (sent) console.log(`Welcome email sent to ${user.email}`);
-        else console.warn(`Failed to send welcome email to ${user.email}`);
-      })
-      .catch((err) =>
-        console.error(`Error sending welcome email to ${user.email}:`, err)
-      );
+    sendEmail(user.email, welcomeSubject, welcomeText, welcomeHtml);
     // --- End Email ---
 
     res.status(201).json({
@@ -149,14 +142,7 @@ router.post("/login", async (req, res) => {
       <p>If this was not you, please change your password immediately.</p>
       <p>The SplitEase Team</p>
     `;
-    sendEmail(user.email, loginSubject, loginText, loginHtml)
-      .then((sent) => {
-        if (sent) console.log(`Login notification sent to ${user.email}`);
-        else console.warn(`Failed to send login notification to ${user.email}`);
-      })
-      .catch((err) =>
-        console.error(`Error sending login notification to ${user.email}:`, err)
-      );
+    sendEmail(user.email, loginSubject, loginText, loginHtml);
     // --- End Email ---
 
     res.status(200).json({
@@ -497,21 +483,7 @@ router.post("/reset-password", async (req, res) => {
       notificationSubject,
       notificationText,
       notificationHtml
-    )
-      .then((sent) => {
-        if (sent)
-          console.log(`Password change notification sent to ${user.email}`);
-        else
-          console.warn(
-            `Failed to send password change notification to ${user.email}`
-          );
-      })
-      .catch((err) =>
-        console.error(
-          `Error sending password change notification to ${user.email}:`,
-          err
-        )
-      );
+    );
     // --- End Email ---
 
     res.status(200).json({ message: "Password has been reset successfully." });
