@@ -20,7 +20,16 @@ const app = express();
 
 let allowedOrigin;
 if (process.env.NODE_ENV === "production") {
-  allowedOrigin = process.env.FRONTEND_URL; // Use the deployed frontend URL in production
+  // In production, ensure FRONTEND_URL is set. Fallback to a warning if not.
+  allowedOrigin = process.env.FRONTEND_URL;
+  if (!allowedOrigin) {
+    console.warn(
+      "CORS: WARNING! FRONTEND_URL environment variable is not set in production. CORS might not work correctly."
+    );
+    // As a temporary measure for debugging, you might set it to a specific URL or '*'
+    // For security, it's best to explicitly set the correct URL in Vercel environment variables.
+    // allowedOrigin = "https://splitease-pearl.vercel.app"; // Uncomment for strict debugging
+  }
 } else {
   allowedOrigin = "http://localhost:5173"; // Allow Vite's default dev server port locally
 }
