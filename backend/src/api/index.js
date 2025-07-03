@@ -40,18 +40,20 @@ app.use(cors(corsOptions));
 // --- Middleware for PayPal webhooks (MUST be before general JSON parser) ---
 // This middleware will only apply to requests matching exactly /paypal/webhook
 // Vercel routes /api/paypal/webhook to /paypal/webhook within this app's context
-app.use("/paypal/webhook", bodyParser.raw({ type: "application/json" }));
+// Note: Changed to /api/paypal/webhook to match the new API prefix convention
+app.use("/api/paypal/webhook", bodyParser.raw({ type: "application/json" }));
 
 // --- General JSON body parser middleware ---
 // This should come after raw body parser for webhooks
 app.use(express.json());
 
 // API Routes (mounted relative to this app's base path, which Vercel treats as /api/)
-app.use("/auth", authRoutes);
-app.use("/groups", groupRoutes);
-app.use("/expenses", expensesRoutes);
-app.use("/paypal", paypalRoutes);
-app.use("/activity", activityRoutes);
+// IMPORTANT: Added '/api' prefix to all main route mounts to match frontend's BACKEND_URL
+app.use("/api/auth", authRoutes);
+app.use("/api/groups", groupRoutes);
+app.use("/api/expenses", expensesRoutes);
+app.use("/api/paypal", paypalRoutes);
+app.use("/api/activity", activityRoutes);
 
 // Basic route for the root of this API to confirm backend is running
 // This will be accessible at https://your-backend-url.vercel.app/
