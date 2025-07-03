@@ -1,151 +1,208 @@
+// backend/src/api/index.js
+
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
+const { query } = require("../db"); // Ensure query is imported correctly
 
-// Load environment variables first
 if (process.env.NODE_ENV !== "production") {
-  require("dotenv").config();
+  require("dotenv").config(); // Loads from .env or .env.local by default
 }
+// --- End dotenv config ---
+
+const authRoutes = require("../routes/auth");
+const groupRoutes = require("../routes/groups");
+const expensesRoutes = require("../routes/expenses");
+const paypalRoutes = require("../routes/paypal");
+const activityRoutes = require("../routes/activity");
 
 const app = express();
 
 // --- CORS Configuration ---
 let allowedOrigin;
-
 if (process.env.NODE_ENV === "production") {
+  // Log the actual value of FRONTEND_URL in production for debugging Vercel deployments
   console.log(
     `CORS: Production FRONTEND_URL env var: ${process.env.FRONTEND_URL}`
   );
+
+  // Use the environment variable, but provide a direct fallback to your known frontend URL
+  // if the environment variable is not set or empty.
   allowedOrigin =
     process.env.FRONTEND_URL || "https://splitease-pearl.vercel.app";
+
+  if (!process.env.FRONTEND_URL) {
+    console.warn(
+      "CORS: WARNING! FRONTEND_URL environment variable was not found in production. Using hardcoded fallback: https://splitease-pearl.vercel.app"
+    );
+  }
 } else {
-  allowedOrigin = "http://localhost:5173";
+  allowedOrigin = "http://localhost:5173"; // Allow Vite's default dev server port locally
 }
 
-console.log(`CORS: Final allowed origin configured: ${allowedOrigin}`);
+console.log(`CORS: Final allowed origin configured: ${allowedOrigin}`); // DEBUG: Log final allowed origin
 
 const corsOptions = {
   origin: allowedOrigin,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
-  allowedHeaders: [
-    "Origin",
-    "X-Requested-With",
-    "Content-Type",
-    "Accept",
-    "Authorization",
-    "Cache-Control",
-  ],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"], // Include all necessary methods
   credentials: true,
-  optionsSuccessStatus: 200,
+  optionsSuccessStatus: 204, // For preflight requests
 };
 
-// Apply CORS middleware
 app.use(cors(corsOptions));
+// --- End CORS Configuration ---
 
-// Handle preflight requests
-app.options("*", cors(corsOptions));
+// --- Middleware for PayPal webhooks (MUST be before general JSON parser) ---
+// This middleware will only apply to requests matching exactly /paypal/webhook
+// Vercel routes /api/paypal/webhook to /paypal/webhook within this app's context
+app.use("/paypal/webhook", bodyParser.raw({ type: "application/json" })); // <--- REMOVED /api prefix
 
-// --- Middleware for PayPal webhooks (before JSON parser) ---
-app.use("/paypal/webhook", bodyParser.raw({ type: "application/json" }));
-
-// --- General JSON body parser ---
+// --- General JSON body parser middleware ---
+// This should come after raw body parser for webhooks
 app.use(express.json());
 
-// Basic logging
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path}`);
-  next();
-});
+// API Routes (mounted relative to this app's base path, which Vercel treats as /api/)
+// <--- REMOVED /api prefix from all these routes
+app.use("/auth", authRoutes);
+app.use("/groups", groupRoutes);
+app.use("/expenses", expensesRoutes);
+app.use("/paypal", paypalRoutes);
+app.use("/activity", activityRoutes);
 
-// Root route
+// Basic route for the root of this API to confirm backend is running
+// This will be accessible at https://your-backend-url.vercel.app/
 app.get("/", (req, res) => {
-  res.status(200).json({
-    message: "SplitEase Backend API is running!",
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV,
-  });
+  res.status(200).json({ message: "SplitEase Backend API is running!" });
 });
 
-// Health check
-app.get("/health", (req, res) => {
-  res.status(200).json({
-    status: "healthy",
-    timestamp: new Date().toISOString(),
-  });
+// Basic route to check /api/ path on Vercel
+// This will be accessible at https://your-backend-url.vercel.app/api
+app.get("/api", (req, res) => {
+  // <--- This route is now correct for /api
+  res
+    .status(200)
+    .json({ message: "SplitEase Backend API is running at /api!" });
 });
 
-// Load routes individually to identify which one is causing the path-to-regexp error
-const routesToLoad = [
-  { name: "auth", path: "../routes/auth", mount: "/auth" },
-  { name: "groups", path: "../routes/groups", mount: "/groups" },
-  { name: "expenses", path: "../routes/expenses", mount: "/expenses" },
-  { name: "paypal", path: "../routes/paypal", mount: "/paypal" },
-  { name: "activity", path: "../routes/activity", mount: "/activity" },
-];
-
-const loadedRoutes = [];
-const failedRoutes = [];
-
-for (const route of routesToLoad) {
-  try {
-    console.log(`Loading ${route.name} routes...`);
-    const routeModule = require(route.path);
-    app.use(route.mount, routeModule);
-    console.log(`${route.name} routes loaded successfully`);
-    loadedRoutes.push(route.name);
-  } catch (error) {
-    console.error(`ERROR loading ${route.name} routes:`, error.message);
-    console.error(`Stack trace for ${route.name}:`, error.stack);
-    failedRoutes.push({ name: route.name, error: error.message });
-
-    // Create a fallback route for the failed module
-    app.use(route.mount, (req, res) => {
-      res.status(503).json({
-        message: `${route.name} routes are temporarily unavailable`,
-        error: error.message,
-      });
-    });
-  }
-}
-
-// Add a debug endpoint to show which routes loaded
-app.get("/debug/routes", (req, res) => {
-  res.json({
-    loadedRoutes,
-    failedRoutes,
-    timestamp: new Date().toISOString(),
-  });
-});
-
-// Error handling middleware
+// Error handling middleware (optional, but good practice)
 app.use((err, req, res, next) => {
-  console.error("Express error:", err.message);
-  console.error("Stack:", err.stack);
-
-  res.status(500).json({
-    message: "Internal server error",
-    error:
-      process.env.NODE_ENV === "development"
-        ? err.message
-        : "Something went wrong",
-  });
+  console.error(err.stack);
+  res.status(500).send("Something broke!");
 });
 
-// 404 handler
-app.use("*", (req, res) => {
-  res.status(404).json({
-    message: "Route not found",
-    path: req.originalUrl,
-    method: req.method,
-  });
-});
-
+// --- Export the Express app for Vercel Serverless Functions ---
 module.exports = app;
 
-// Local development server
+// --- Local Development Server (only runs if not deployed on Vercel/production) ---
 if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => {
     console.log(`Server running locally on http://localhost:${PORT}`);
+    console.log(`Node Environment: ${process.env.NODE_ENV}`);
+    console.log(`Frontend URL: ${process.env.FRONTEND_URL}`);
+  });
+}
+// backend/src/api/index.js
+
+const express = require("express");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const { query } = require("../db"); // Ensure query is imported correctly
+
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config(); // Loads from .env or .env.local by default
+}
+// --- End dotenv config ---
+
+const authRoutes = require("../routes/auth");
+const groupRoutes = require("../routes/groups");
+const expensesRoutes = require("../routes/expenses");
+const paypalRoutes = require("../routes/paypal");
+const activityRoutes = require("../routes/activity");
+
+const app = express();
+
+// --- CORS Configuration ---
+let allowedOrigin;
+if (process.env.NODE_ENV === "production") {
+  // Log the actual value of FRONTEND_URL in production for debugging Vercel deployments
+  console.log(
+    `CORS: Production FRONTEND_URL env var: ${process.env.FRONTEND_URL}`
+  );
+
+  // Use the environment variable, but provide a direct fallback to your known frontend URL
+  // if the environment variable is not set or empty.
+  allowedOrigin =
+    process.env.FRONTEND_URL || "https://splitease-pearl.vercel.app";
+
+  if (!process.env.FRONTEND_URL) {
+    console.warn(
+      "CORS: WARNING! FRONTEND_URL environment variable was not found in production. Using hardcoded fallback: https://splitease-pearl.vercel.app"
+    );
+  }
+} else {
+  allowedOrigin = "http://localhost:5173"; // Allow Vite's default dev server port locally
+}
+
+console.log(`CORS: Final allowed origin configured: ${allowedOrigin}`); // DEBUG: Log final allowed origin
+
+const corsOptions = {
+  origin: allowedOrigin,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"], // Include all necessary methods
+  credentials: true,
+  optionsSuccessStatus: 204, // For preflight requests
+};
+
+app.use(cors(corsOptions));
+// --- End CORS Configuration ---
+
+// --- Middleware for PayPal webhooks (MUST be before general JSON parser) ---
+// This middleware will only apply to requests matching exactly /paypal/webhook
+// Vercel routes /api/paypal/webhook to /paypal/webhook within this app's context
+app.use("/paypal/webhook", bodyParser.raw({ type: "application/json" })); // <--- REMOVED /api prefix
+
+// --- General JSON body parser middleware ---
+// This should come after raw body parser for webhooks
+app.use(express.json());
+
+// API Routes (mounted relative to this app's base path, which Vercel treats as /api/)
+// <--- REMOVED /api prefix from all these routes
+app.use("/auth", authRoutes);
+app.use("/groups", groupRoutes);
+app.use("/expenses", expensesRoutes);
+app.use("/paypal", paypalRoutes);
+app.use("/activity", activityRoutes);
+
+// Basic route for the root of this API to confirm backend is running
+// This will be accessible at https://your-backend-url.vercel.app/
+app.get("/", (req, res) => {
+  res.status(200).json({ message: "SplitEase Backend API is running!" });
+});
+
+// Basic route to check /api/ path on Vercel
+// This will be accessible at https://your-backend-url.vercel.app/api
+app.get("/api", (req, res) => {
+  // <--- This route is now correct for /api
+  res
+    .status(200)
+    .json({ message: "SplitEase Backend API is running at /api!" });
+});
+
+// Error handling middleware (optional, but good practice)
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send("Something broke!");
+});
+
+// --- Export the Express app for Vercel Serverless Functions ---
+module.exports = app;
+
+// --- Local Development Server (only runs if not deployed on Vercel/production) ---
+if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Server running locally on http://localhost:${PORT}`);
+    console.log(`Node Environment: ${process.env.NODE_ENV}`);
+    console.log(`Frontend URL: ${process.env.FRONTEND_URL}`);
   });
 }
