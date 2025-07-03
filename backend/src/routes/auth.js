@@ -1,15 +1,40 @@
-// backend/src/routes/auth.js
-// Defines API routes for user authentication (signup, login, get current user, profile update)
-
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const crypto = require("crypto"); // Added for generating reset tokens
-const { query } = require("../db"); // Import database helper
-const authenticateToken = require("../middleware/auth"); // Import auth middleware
-const { sendEmail } = require("../utils/email"); // Import the email utility
+const crypto = require("crypto");
+const { query } = require("../db");
+const authenticateToken = require("../middleware/auth");
+const { sendEmail } = require("../utils/email");
 
 const router = express.Router();
+
+// Add CORS headers to all auth routes
+router.use((req, res, next) => {
+  const origin = req.get("Origin");
+  const allowedOrigin =
+    process.env.NODE_ENV === "production"
+      ? process.env.FRONTEND_URL || "https://splitease-pearl.vercel.app"
+      : "http://localhost:5173";
+
+  if (origin === allowedOrigin) {
+    res.header("Access-Control-Allow-Origin", origin);
+  }
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS"
+  );
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-HTTP-Method-Override"
+  );
+
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
+  next();
+});
 
 // Helper function to hash passwords
 const hashPassword = async (password) => {
@@ -18,7 +43,6 @@ const hashPassword = async (password) => {
 };
 
 // --- Signup Route ---
-// POST /api/auth/signup
 router.post("/signup", async (req, res) => {
   const { name, email, password } = req.body;
 
@@ -30,17 +54,15 @@ router.post("/signup", async (req, res) => {
     const userExists = await query("SELECT id FROM users WHERE email = $1", [
       email,
     ]);
+
     if (userExists.rows.length > 0) {
       return res.status(409).json({ message: "Email already registered." });
     }
 
     const passwordHash = await hashPassword(password);
-
-    // Calculate trial end date: 7 days from now for initial signup trial
     const trialEndsAt = new Date();
     trialEndsAt.setDate(trialEndsAt.getDate() + 7);
 
-    // Insert new user with trial status
     const newUserResult = await query(
       "INSERT INTO users (name, email, password_hash, is_subscribed, is_trial_active, trial_ends_at) VALUES ($1, $2, $3, FALSE, TRUE, $4) RETURNING id, name, email, is_subscribed, is_trial_active, trial_ends_at",
       [name, email, passwordHash, trialEndsAt]
@@ -55,13 +77,13 @@ router.post("/signup", async (req, res) => {
         name: user.name,
         isSubscribed: user.is_subscribed,
         isTrialActive: user.is_trial_active,
-        trialEndsAt: user.trial_ends_at, // Send as ISO string
+        trialEndsAt: user.trial_ends_at,
       },
-      process.env.JWT_SECRET, // IMPORTANT: Ensure this is correctly loaded from .env
-      { expiresIn: "72h" } // Changed from '1h' to '72h' (3 days)
+      process.env.JWT_SECRET,
+      { expiresIn: "72h" }
     );
 
-    // --- Email: Send Welcome Email on Signup ---
+    // Send welcome email
     const welcomeSubject = "Welcome to SplitEase!";
     const welcomeText = `Hello ${user.name},\n\nWelcome to SplitEase! We're excited to have you on board. Your 7-day free trial has started.\n\nStart splitting expenses easily today!\n\nThe SplitEase Team`;
     const welcomeHtml = `
@@ -70,8 +92,15 @@ router.post("/signup", async (req, res) => {
       <p>Start splitting expenses easily today!</p>
       <p>The SplitEase Team</p>
     `;
-    sendEmail(user.email, welcomeSubject, welcomeText, welcomeHtml);
-    // --- End Email ---
+
+    sendEmail(user.email, welcomeSubject, welcomeText, welcomeHtml)
+      .then((sent) => {
+        if (sent) console.log(`Welcome email sent to ${user.email}`);
+        else console.warn(`Failed to send welcome email to ${user.email}`);
+      })
+      .catch((err) =>
+        console.error(`Error sending welcome email to ${user.email}:`, err)
+      );
 
     res.status(201).json({
       message: "User registered successfully.",
@@ -82,7 +111,7 @@ router.post("/signup", async (req, res) => {
         email: user.email,
         isSubscribed: user.is_subscribed,
         isTrialActive: user.is_trial_active,
-        trialEndsAt: user.trial_ends_at, // Send as ISO string
+        trialEndsAt: user.trial_ends_at,
       },
     });
   } catch (error) {
@@ -92,7 +121,6 @@ router.post("/signup", async (req, res) => {
 });
 
 // --- Login Route ---
-// POST /api/auth/login
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -107,6 +135,7 @@ router.post("/login", async (req, res) => {
       "SELECT id, name, email, password_hash, is_subscribed, is_trial_active, trial_ends_at FROM users WHERE email = $1",
       [email]
     );
+
     const user = userResult.rows[0];
 
     if (!user) {
@@ -114,11 +143,11 @@ router.post("/login", async (req, res) => {
     }
 
     const isMatch = await bcrypt.compare(password, user.password_hash);
+
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid credentials." });
     }
 
-    // Generate new JWT with the latest user data including trial status
     const token = jwt.sign(
       {
         id: user.id,
@@ -126,14 +155,13 @@ router.post("/login", async (req, res) => {
         name: user.name,
         isSubscribed: user.is_subscribed,
         isTrialActive: user.is_trial_active,
-        trialEndsAt: user.trial_ends_at, // Send as ISO string
+        trialEndsAt: user.trial_ends_at,
       },
-      process.env.JWT_SECRET, // IMPORTANT: Ensure this is correctly loaded from .env
-      { expiresIn: "72h" } // Changed from '1h' to '72h' (3 days)
+      process.env.JWT_SECRET,
+      { expiresIn: "72h" }
     );
 
-    // --- Email: Send Login Notification (Optional) ---
-    // Uncommented to enable sending email on login
+    // Send login notification
     const loginSubject = "Successful Login to SplitEase";
     const loginText = `Hello ${user.name},\n\nThis is a notification that your SplitEase account was just accessed.\n\nIf this was not you, please change your password immediately.\n\nThe SplitEase Team`;
     const loginHtml = `
@@ -142,8 +170,15 @@ router.post("/login", async (req, res) => {
       <p>If this was not you, please change your password immediately.</p>
       <p>The SplitEase Team</p>
     `;
-    sendEmail(user.email, loginSubject, loginText, loginHtml);
-    // --- End Email ---
+
+    sendEmail(user.email, loginSubject, loginText, loginHtml)
+      .then((sent) => {
+        if (sent) console.log(`Login notification sent to ${user.email}`);
+        else console.warn(`Failed to send login notification to ${user.email}`);
+      })
+      .catch((err) =>
+        console.error(`Error sending login notification to ${user.email}:`, err)
+      );
 
     res.status(200).json({
       message: "Logged in successfully.",
@@ -154,7 +189,7 @@ router.post("/login", async (req, res) => {
         email: user.email,
         isSubscribed: user.is_subscribed,
         isTrialActive: user.is_trial_active,
-        trialEndsAt: user.trial_ends_at, // Send as ISO string
+        trialEndsAt: user.trial_ends_at,
       },
     });
   } catch (error) {
@@ -164,22 +199,21 @@ router.post("/login", async (req, res) => {
 });
 
 // --- Get Current User (authenticated) ---
-// GET /api/auth/me
 router.get("/me", authenticateToken, async (req, res) => {
-  const userId = req.user.id; // req.user is set by authenticateToken middleware
+  const userId = req.user.id;
 
   try {
     const userResult = await query(
       "SELECT id, name, email, is_subscribed, is_trial_active, trial_ends_at FROM users WHERE id = $1",
       [userId]
     );
+
     const user = userResult.rows[0];
 
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
 
-    // Generate a NEW JWT with the latest user data (important for refresh)
     const newToken = jwt.sign(
       {
         id: user.id,
@@ -189,8 +223,8 @@ router.get("/me", authenticateToken, async (req, res) => {
         isTrialActive: user.is_trial_active,
         trialEndsAt: user.trial_ends_at,
       },
-      process.env.JWT_SECRET, // IMPORTANT: Ensure this is correctly loaded from .env
-      { expiresIn: "72h" } // Changed from '1h' to '72h' (3 days)
+      process.env.JWT_SECRET,
+      { expiresIn: "72h" }
     );
 
     res.status(200).json({
@@ -203,7 +237,7 @@ router.get("/me", authenticateToken, async (req, res) => {
         isTrialActive: user.is_trial_active,
         trialEndsAt: user.trial_ends_at,
       },
-      token: newToken, // Send the new token back
+      token: newToken,
     });
   } catch (error) {
     console.error("Error fetching user data for /me route:", error);
@@ -212,46 +246,42 @@ router.get("/me", authenticateToken, async (req, res) => {
 });
 
 // --- Start Free Trial Route ---
-// POST /api/auth/start-trial
 router.post("/start-trial", authenticateToken, async (req, res) => {
-  const userId = req.user.id; // Get user ID from authenticated token
+  const userId = req.user.id;
 
   try {
     const userResult = await query(
       "SELECT is_subscribed, is_trial_active FROM users WHERE id = $1",
       [userId]
     );
+
     const user = userResult.rows[0];
 
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
 
-    // Prevent starting a trial if already subscribed or on an active trial
     if (user.is_subscribed || user.is_trial_active) {
       return res
         .status(409)
         .json({ message: "You are already subscribed or on an active trial." });
     }
 
-    // Calculate trial end date: 3 days from now
     const trialEndsAt = new Date();
     trialEndsAt.setDate(trialEndsAt.getDate() + 3);
 
-    // Update user to activate trial
     await query(
       "UPDATE users SET is_trial_active = TRUE, trial_ends_at = $1 WHERE id = $2",
       [trialEndsAt.toISOString(), userId]
     );
 
-    // Fetch updated user data to return in the response
     const updatedUserResult = await query(
       "SELECT id, name, email, is_subscribed, is_trial_active, trial_ends_at FROM users WHERE id = $1",
       [userId]
     );
+
     const updatedUser = updatedUserResult.rows[0];
 
-    // Generate a new JWT with updated trial status
     const newToken = jwt.sign(
       {
         id: updatedUser.id,
@@ -262,7 +292,7 @@ router.post("/start-trial", authenticateToken, async (req, res) => {
         trialEndsAt: updatedUser.trial_ends_at,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "72h" } // Changed from '1h' to '72h' (3 days)
+      { expiresIn: "72h" }
     );
 
     res.status(200).json({
@@ -284,7 +314,6 @@ router.post("/start-trial", authenticateToken, async (req, res) => {
 });
 
 // --- Update User Profile Route ---
-// PUT /api/auth/profile
 router.put("/profile", authenticateToken, async (req, res) => {
   const userId = req.user.id;
   const { name, email } = req.body;
@@ -294,11 +323,11 @@ router.put("/profile", authenticateToken, async (req, res) => {
   }
 
   try {
-    // Check if the new email already exists for another user
     const emailExists = await query(
       "SELECT id FROM users WHERE email = $1 AND id != $2",
       [email, userId]
     );
+
     if (emailExists.rows.length > 0) {
       return res
         .status(409)
@@ -316,7 +345,6 @@ router.put("/profile", authenticateToken, async (req, res) => {
       return res.status(404).json({ message: "User not found." });
     }
 
-    // Generate a new JWT with the updated user data
     const newToken = jwt.sign(
       {
         id: updatedUser.id,
@@ -327,7 +355,7 @@ router.put("/profile", authenticateToken, async (req, res) => {
         trialEndsAt: updatedUser.trial_ends_at,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "72h" } // Changed from '1h' to '72h' (3 days)
+      { expiresIn: "72h" }
     );
 
     res.status(200).json({
@@ -348,8 +376,7 @@ router.put("/profile", authenticateToken, async (req, res) => {
   }
 });
 
-// --- New Endpoint: Forgot Password (Request Reset Link) ---
-// POST /api/auth/forgot-password
+// --- Forgot Password Route ---
 router.post("/forgot-password", async (req, res) => {
   const { email } = req.body;
 
@@ -362,19 +389,17 @@ router.post("/forgot-password", async (req, res) => {
       "SELECT id, name FROM users WHERE email = $1",
       [email]
     );
+
     const user = userResult.rows[0];
 
     if (!user) {
-      // For security, always return a generic success message even if email not found
       return res.status(200).json({
         message:
           "If an account with that email exists, a password reset link has been sent.",
       });
     }
 
-    // Generate a unique token
     const resetToken = crypto.randomBytes(32).toString("hex");
-    // Set token expiry (e.g., 1 hour from now)
     const resetExpires = new Date(Date.now() + 3600000); // 1 hour
 
     await query(
@@ -382,10 +407,8 @@ router.post("/forgot-password", async (req, res) => {
       [resetToken, resetExpires.toISOString(), user.id]
     );
 
-    // Create the reset URL for the frontend
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
 
-    // --- Email: Send Password Reset Link ---
     const resetSubject = "Password Reset Request for your SplitEase Account";
     const resetText = `Hello ${user.name},\n\nYou have requested to reset your password for your SplitEase account.\n\nPlease click on the following link to reset your password: ${resetUrl}\n\nThis link will expire in 1 hour.\nIf you did not request this, please ignore this email.\n\nThe SplitEase Team`;
     const resetHtml = `
@@ -424,8 +447,7 @@ router.post("/forgot-password", async (req, res) => {
   }
 });
 
-// --- New Endpoint: Reset Password (with Token) ---
-// POST /api/auth/reset-password
+// --- Reset Password Route ---
 router.post("/reset-password", async (req, res) => {
   const { token, newPassword } = req.body;
 
@@ -446,6 +468,7 @@ router.post("/reset-password", async (req, res) => {
       "SELECT id, name, email, password_reset_expires FROM users WHERE password_reset_token = $1",
       [token]
     );
+
     const user = userResult.rows[0];
 
     if (!user) {
@@ -454,7 +477,6 @@ router.post("/reset-password", async (req, res) => {
         .json({ message: "Invalid or expired password reset token." });
     }
 
-    // Check if token has expired
     if (new Date(user.password_reset_expires) < new Date()) {
       return res.status(400).json({
         message: "Password reset token has expired. Please request a new one.",
@@ -463,13 +485,11 @@ router.post("/reset-password", async (req, res) => {
 
     const passwordHash = await hashPassword(newPassword);
 
-    // Update password and clear reset token fields
     await query(
       "UPDATE users SET password_hash = $1, password_reset_token = NULL, password_reset_expires = NULL WHERE id = $2",
       [passwordHash, user.id]
     );
 
-    // --- Email: Send Password Changed Notification ---
     const notificationSubject = "Your SplitEase Password Has Been Changed";
     const notificationText = `Hello ${user.name},\n\nYour password for your SplitEase account has been successfully changed.\n\nIf you did not make this change, please contact support immediately.\n\nThe SplitEase Team`;
     const notificationHtml = `
@@ -478,13 +498,27 @@ router.post("/reset-password", async (req, res) => {
       <p>If you did not make this change, please contact support immediately.</p>
       <p>The SplitEase Team</p>
     `;
+
     sendEmail(
       user.email,
       notificationSubject,
       notificationText,
       notificationHtml
-    );
-    // --- End Email ---
+    )
+      .then((sent) => {
+        if (sent)
+          console.log(`Password change notification sent to ${user.email}`);
+        else
+          console.warn(
+            `Failed to send password change notification to ${user.email}`
+          );
+      })
+      .catch((err) =>
+        console.error(
+          `Error sending password change notification to ${user.email}:`,
+          err
+        )
+      );
 
     res.status(200).json({ message: "Password has been reset successfully." });
   } catch (error) {
