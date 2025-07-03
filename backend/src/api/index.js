@@ -3,12 +3,10 @@
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-// const { query, connectDB } = require("../db"); // <--- REMOVED connectDB from destructuring
-const { query } = require("../db"); // <--- CORRECTED: Only import query
+const { query } = require("../db"); // Ensure query is imported correctly
 
-// --- IMPORTANT: Load environment variables based on environment ---
 if (process.env.NODE_ENV !== "production") {
-  require("dotenv").config();
+  require("dotenv").config(); // Loads from .env or .env.local by default
 }
 // --- End dotenv config ---
 
@@ -20,34 +18,32 @@ const activityRoutes = require("../routes/activity");
 
 const app = express();
 
-// --- Database Connection ---
-// The database connection is likely established as a side-effect when '../db' is required.
-// No explicit connectDB() call is needed here if it's handled in ../db.js.
-// If your ../db.js file exports a function named connectDB that *must* be called,
-// then you need to ensure that function is correctly exported and called.
-// Based on the error "connectDB is not a function", it's likely not exported this way,
-// or it's a module that connects on import.
-// We'll remove the explicit call here.
-// connectDB(); // <--- REMOVED THIS LINE
-// --- End Database Connection ---
+let allowedOrigin;
+if (process.env.NODE_ENV === "production") {
+  allowedOrigin = process.env.FRONTEND_URL; // Use the deployed frontend URL in production
+} else {
+  allowedOrigin = "http://localhost:5173"; // Allow Vite's default dev server port locally
+}
 
-// --- CORS Configuration ---
-const frontendUrl = process.env.FRONTEND_URL;
+console.log(`CORS: Allowing origin: ${allowedOrigin}`); // DEBUG: Log allowed origin
 
 const corsOptions = {
-  origin: frontendUrl,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"],
+  origin: allowedOrigin,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"], // Include all necessary methods
   credentials: true,
-  optionsSuccessStatus: 204,
+  optionsSuccessStatus: 204, // For preflight requests
 };
 
 app.use(cors(corsOptions));
 // --- End CORS Configuration ---
 
 // --- Middleware for PayPal webhooks (MUST be before general JSON parser) ---
+// This middleware will only apply to requests matching exactly /paypal/webhook
+// Vercel routes /api/paypal/webhook to /paypal/webhook within this app's context
 app.use("/paypal/webhook", bodyParser.raw({ type: "application/json" }));
 
 // --- General JSON body parser middleware ---
+// This should come after raw body parser for webhooks
 app.use(express.json());
 
 // API Routes (mounted relative to this app's base path, which Vercel treats as /api/)
@@ -58,11 +54,13 @@ app.use("/paypal", paypalRoutes);
 app.use("/activity", activityRoutes);
 
 // Basic route for the root of this API to confirm backend is running
+// This will be accessible at https://your-backend-url.vercel.app/
 app.get("/", (req, res) => {
   res.status(200).json({ message: "SplitEase Backend API is running!" });
 });
 
 // Basic route to check /api/ path on Vercel
+// This will be accessible at https://your-backend-url.vercel.app/api
 app.get("/api", (req, res) => {
   res
     .status(200)
