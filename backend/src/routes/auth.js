@@ -8,34 +8,6 @@ const { sendEmail } = require("../utils/email");
 
 const router = express.Router();
 
-// Add CORS headers to all auth routes
-router.use((req, res, next) => {
-  const origin = req.get("Origin");
-  const allowedOrigin =
-    process.env.NODE_ENV === "production"
-      ? process.env.FRONTEND_URL || "https://splitease-pearl.vercel.app"
-      : "http://localhost:5173";
-
-  if (origin === allowedOrigin) {
-    res.header("Access-Control-Allow-Origin", origin);
-  }
-  res.header("Access-Control-Allow-Credentials", "true");
-  res.header(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS"
-  );
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-HTTP-Method-Override"
-  );
-
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
-  next();
-});
-
 // Helper function to hash passwords
 const hashPassword = async (password) => {
   const salt = await bcrypt.genSalt(10);
@@ -83,7 +55,7 @@ router.post("/signup", async (req, res) => {
       { expiresIn: "72h" }
     );
 
-    // Send welcome email
+    // Send welcome email (async, don't wait)
     const welcomeSubject = "Welcome to SplitEase!";
     const welcomeText = `Hello ${user.name},\n\nWelcome to SplitEase! We're excited to have you on board. Your 7-day free trial has started.\n\nStart splitting expenses easily today!\n\nThe SplitEase Team`;
     const welcomeHtml = `
@@ -99,7 +71,7 @@ router.post("/signup", async (req, res) => {
         else console.warn(`Failed to send welcome email to ${user.email}`);
       })
       .catch((err) =>
-        console.error(`Error sending welcome email to ${user.email}:`, err)
+        console.error(`Error sending welcome email:`, err.message)
       );
 
     res.status(201).json({
@@ -115,7 +87,7 @@ router.post("/signup", async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Signup error:", error);
+    console.error("Signup error:", error.message);
     res.status(500).json({ message: "Server error during signup." });
   }
 });
@@ -161,7 +133,7 @@ router.post("/login", async (req, res) => {
       { expiresIn: "72h" }
     );
 
-    // Send login notification
+    // Send login notification (async, don't wait)
     const loginSubject = "Successful Login to SplitEase";
     const loginText = `Hello ${user.name},\n\nThis is a notification that your SplitEase account was just accessed.\n\nIf this was not you, please change your password immediately.\n\nThe SplitEase Team`;
     const loginHtml = `
@@ -177,7 +149,7 @@ router.post("/login", async (req, res) => {
         else console.warn(`Failed to send login notification to ${user.email}`);
       })
       .catch((err) =>
-        console.error(`Error sending login notification to ${user.email}:`, err)
+        console.error(`Error sending login notification:`, err.message)
       );
 
     res.status(200).json({
@@ -193,12 +165,12 @@ router.post("/login", async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("Login error:", error.message);
     res.status(500).json({ message: "Server error during login." });
   }
 });
 
-// --- Get Current User (authenticated) ---
+// --- Get Current User ---
 router.get("/me", authenticateToken, async (req, res) => {
   const userId = req.user.id;
 
@@ -240,12 +212,12 @@ router.get("/me", authenticateToken, async (req, res) => {
       token: newToken,
     });
   } catch (error) {
-    console.error("Error fetching user data for /me route:", error);
+    console.error("Error fetching user data:", error.message);
     res.status(500).json({ message: "Server error while fetching user data." });
   }
 });
 
-// --- Start Free Trial Route ---
+// --- Start Free Trial ---
 router.post("/start-trial", authenticateToken, async (req, res) => {
   const userId = req.user.id;
 
@@ -308,12 +280,12 @@ router.post("/start-trial", authenticateToken, async (req, res) => {
       token: newToken,
     });
   } catch (error) {
-    console.error("Start trial error:", error);
+    console.error("Start trial error:", error.message);
     res.status(500).json({ message: "Server error during trial activation." });
   }
 });
 
-// --- Update User Profile Route ---
+// --- Update Profile ---
 router.put("/profile", authenticateToken, async (req, res) => {
   const userId = req.user.id;
   const { name, email } = req.body;
@@ -371,12 +343,12 @@ router.put("/profile", authenticateToken, async (req, res) => {
       token: newToken,
     });
   } catch (error) {
-    console.error("Profile update error:", error);
+    console.error("Profile update error:", error.message);
     res.status(500).json({ message: "Server error during profile update." });
   }
 });
 
-// --- Forgot Password Route ---
+// --- Forgot Password ---
 router.post("/forgot-password", async (req, res) => {
   const { email } = req.body;
 
@@ -440,14 +412,14 @@ router.post("/forgot-password", async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("Forgot password error:", error);
+    console.error("Forgot password error:", error.message);
     res
       .status(500)
       .json({ message: "Server error during password reset request." });
   }
 });
 
-// --- Reset Password Route ---
+// --- Reset Password ---
 router.post("/reset-password", async (req, res) => {
   const { token, newPassword } = req.body;
 
@@ -515,14 +487,14 @@ router.post("/reset-password", async (req, res) => {
       })
       .catch((err) =>
         console.error(
-          `Error sending password change notification to ${user.email}:`,
-          err
+          `Error sending password change notification:`,
+          err.message
         )
       );
 
     res.status(200).json({ message: "Password has been reset successfully." });
   } catch (error) {
-    console.error("Reset password error:", error);
+    console.error("Reset password error:", error.message);
     res.status(500).json({ message: "Server error during password reset." });
   }
 });

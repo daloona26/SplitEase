@@ -37,17 +37,7 @@ if (process.env.NODE_ENV === "production") {
 console.log(`CORS: Final allowed origin configured: ${allowedOrigin}`);
 
 const corsOptions = {
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-
-    if (origin === allowedOrigin) {
-      return callback(null, true);
-    } else {
-      console.log(`CORS: Blocked origin: ${origin}`);
-      return callback(new Error("Not allowed by CORS"));
-    }
-  },
+  origin: allowedOrigin,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
   allowedHeaders: [
     "Origin",
@@ -59,29 +49,28 @@ const corsOptions = {
     "X-HTTP-Method-Override",
   ],
   credentials: true,
-  optionsSuccessStatus: 200, // For legacy browser support
-  preflightContinue: false, // Pass control to the next handler
+  optionsSuccessStatus: 200,
 };
 
-// Apply CORS middleware first
+// Apply CORS middleware
 app.use(cors(corsOptions));
 
-// Handle preflight requests explicitly
+// Handle preflight requests
 app.options("*", cors(corsOptions));
 
-// --- Middleware for PayPal webhooks (MUST be before general JSON parser) ---
+// --- Middleware for PayPal webhooks ---
 app.use("/paypal/webhook", bodyParser.raw({ type: "application/json" }));
 
 // --- General JSON body parser middleware ---
 app.use(express.json());
 
-// Add request logging for debugging
+// Add basic logging
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path} - Origin: ${req.get("Origin")}`);
+  console.log(`${req.method} ${req.path}`);
   next();
 });
 
-// API Routes
+// API Routes - Remove the /api prefix since Vercel handles routing
 app.use("/auth", authRoutes);
 app.use("/groups", groupRoutes);
 app.use("/expenses", expensesRoutes);
@@ -90,14 +79,27 @@ app.use("/activity", activityRoutes);
 
 // Root route
 app.get("/", (req, res) => {
-  res.status(200).json({ message: "SplitEase Backend API is running!" });
+  res.status(200).json({
+    message: "SplitEase Backend API is running!",
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+  });
+});
+
+// Health check route
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error("Error:", err.message);
+  console.error("Stack:", err.stack);
 
-  // Handle CORS errors specifically
+  // Handle CORS errors
   if (err.message === "Not allowed by CORS") {
     return res.status(403).json({
       message: "CORS policy violation",
@@ -105,12 +107,28 @@ app.use((err, req, res, next) => {
     });
   }
 
-  res.status(500).json({ message: "Something broke!" });
+  res.status(500).json({
+    message: "Internal server error",
+    error:
+      process.env.NODE_ENV === "development"
+        ? err.message
+        : "Something went wrong",
+  });
 });
 
+// Handle 404 routes
+app.use("*", (req, res) => {
+  res.status(404).json({
+    message: "Route not found",
+    path: req.originalUrl,
+    method: req.method,
+  });
+});
+
+// Export for Vercel
 module.exports = app;
 
-// Local Development Server
+// Local development server
 if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => {
