@@ -1,17 +1,11 @@
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const { query } = require("../db");
 
+// Load environment variables first
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
-
-const authRoutes = require("../routes/auth");
-const groupRoutes = require("../routes/groups");
-const expensesRoutes = require("../routes/expenses");
-const paypalRoutes = require("../routes/paypal");
-const activityRoutes = require("../routes/activity");
 
 const app = express();
 
@@ -24,12 +18,6 @@ if (process.env.NODE_ENV === "production") {
   );
   allowedOrigin =
     process.env.FRONTEND_URL || "https://splitease-pearl.vercel.app";
-
-  if (!process.env.FRONTEND_URL) {
-    console.warn(
-      "CORS: WARNING! FRONTEND_URL environment variable was not found in production. Using hardcoded fallback: https://splitease-pearl.vercel.app"
-    );
-  }
 } else {
   allowedOrigin = "http://localhost:5173";
 }
@@ -46,7 +34,6 @@ const corsOptions = {
     "Accept",
     "Authorization",
     "Cache-Control",
-    "X-HTTP-Method-Override",
   ],
   credentials: true,
   optionsSuccessStatus: 200,
@@ -58,24 +45,17 @@ app.use(cors(corsOptions));
 // Handle preflight requests
 app.options("*", cors(corsOptions));
 
-// --- Middleware for PayPal webhooks ---
+// --- Middleware for PayPal webhooks (before JSON parser) ---
 app.use("/paypal/webhook", bodyParser.raw({ type: "application/json" }));
 
-// --- General JSON body parser middleware ---
+// --- General JSON body parser ---
 app.use(express.json());
 
-// Add basic logging
+// Basic logging
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.path}`);
   next();
 });
-
-// API Routes - Remove the /api prefix since Vercel handles routing
-app.use("/auth", authRoutes);
-app.use("/groups", groupRoutes);
-app.use("/expenses", expensesRoutes);
-app.use("/paypal", paypalRoutes);
-app.use("/activity", activityRoutes);
 
 // Root route
 app.get("/", (req, res) => {
@@ -86,7 +66,7 @@ app.get("/", (req, res) => {
   });
 });
 
-// Health check route
+// Health check
 app.get("/health", (req, res) => {
   res.status(200).json({
     status: "healthy",
@@ -94,18 +74,49 @@ app.get("/health", (req, res) => {
   });
 });
 
+// Load routes after basic setup to catch any route parsing errors
+try {
+  console.log("Loading auth routes...");
+  const authRoutes = require("../routes/auth");
+  app.use("/auth", authRoutes);
+  console.log("Auth routes loaded successfully");
+
+  console.log("Loading group routes...");
+  const groupRoutes = require("../routes/groups");
+  app.use("/groups", groupRoutes);
+  console.log("Group routes loaded successfully");
+
+  console.log("Loading expenses routes...");
+  const expensesRoutes = require("../routes/expenses");
+  app.use("/expenses", expensesRoutes);
+  console.log("Expenses routes loaded successfully");
+
+  console.log("Loading paypal routes...");
+  const paypalRoutes = require("../routes/paypal");
+  app.use("/paypal", paypalRoutes);
+  console.log("PayPal routes loaded successfully");
+
+  console.log("Loading activity routes...");
+  const activityRoutes = require("../routes/activity");
+  app.use("/activity", activityRoutes);
+  console.log("Activity routes loaded successfully");
+} catch (error) {
+  console.error("Error loading routes:", error.message);
+  console.error("Stack trace:", error.stack);
+
+  // Still start the server even if some routes fail
+  app.get("/error", (req, res) => {
+    res.status(500).json({
+      message: "Some routes failed to load",
+      error: error.message,
+    });
+  });
+}
+
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error("Error:", err.message);
+  console.error("Express error:", err.message);
   console.error("Stack:", err.stack);
-
-  // Handle CORS errors
-  if (err.message === "Not allowed by CORS") {
-    return res.status(403).json({
-      message: "CORS policy violation",
-      origin: req.get("Origin"),
-    });
-  }
 
   res.status(500).json({
     message: "Internal server error",
@@ -116,7 +127,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Handle 404 routes
+// 404 handler
 app.use("*", (req, res) => {
   res.status(404).json({
     message: "Route not found",
@@ -125,7 +136,6 @@ app.use("*", (req, res) => {
   });
 });
 
-// Export for Vercel
 module.exports = app;
 
 // Local development server
@@ -133,7 +143,5 @@ if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => {
     console.log(`Server running locally on http://localhost:${PORT}`);
-    console.log(`Node Environment: ${process.env.NODE_ENV}`);
-    console.log(`Frontend URL: ${process.env.FRONTEND_URL}`);
   });
 }
