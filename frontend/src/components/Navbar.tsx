@@ -87,17 +87,90 @@ export default function Navbar() {
                 <Sun className="h-5 w-5" />
               )}
             </button>
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-md transition-all duration-200"
-              aria-label="Toggle navigation menu"
-            >
-              {isMobileMenuOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
+            <div className="relative">
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="p-2 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-md transition-all duration-200"
+                aria-label="Toggle navigation menu"
+              >
+                {isMobileMenuOpen ? (
+                  <X className="h-6 w-6" />
+                ) : (
+                  <Menu className="h-6 w-6" />
+                )}
+              </button>
+
+              {/* Mobile Dropdown Menu */}
+              {isMobileMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden">
+                  {/* Menu Items */}
+                  <div className="py-2">
+                    {user ? (
+                      <>
+                        <Link
+                          to="/dashboard"
+                          className="flex items-center space-x-3 px-4 py-3 text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-all duration-200 font-medium"
+                          onClick={closeMobileMenu}
+                        >
+                          <Users className="h-5 w-5 flex-shrink-0" />
+                          <span>Dashboard</span>
+                        </Link>
+
+                        {!user.isSubscribed && (
+                          <Link
+                            to="/pricing"
+                            className="flex items-center space-x-3 px-4 py-3 text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-all duration-200 font-medium"
+                            onClick={closeMobileMenu}
+                          >
+                            <Tag className="h-5 w-5 flex-shrink-0" />
+                            <span>Pricing</span>
+                          </Link>
+                        )}
+
+                        <Link
+                          to="/account"
+                          className="flex items-center space-x-3 px-4 py-3 text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-all duration-200 font-medium"
+                          onClick={closeMobileMenu}
+                        >
+                          <User className="h-5 w-5 flex-shrink-0" />
+                          <span>Account</span>
+                        </Link>
+
+                        <div className="border-t border-gray-200 dark:border-slate-700 my-2"></div>
+
+                        <button
+                          onClick={handleLogout}
+                          className="flex items-center space-x-3 px-4 py-3 w-full text-left text-slate-800 dark:text-slate-200 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 transition-all duration-200 font-medium"
+                        >
+                          <LogOut className="h-5 w-5 flex-shrink-0" />
+                          <span>Logout</span>
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Link
+                          to="/login"
+                          className="block px-4 py-3 text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 font-medium hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-all duration-200"
+                          onClick={closeMobileMenu}
+                        >
+                          Login
+                        </Link>
+
+                        <div className="px-4 py-2">
+                          <Link
+                            to="/signup"
+                            className="block w-full text-center bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 text-white px-4 py-2 rounded-md font-semibold hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+                            onClick={closeMobileMenu}
+                          >
+                            Sign Up
+                          </Link>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
               )}
-            </button>
+            </div>
           </div>
 
           {/* Desktop Navigation Links */}
@@ -190,92 +263,13 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Menu Overlay and Links */}
+      {/* Mobile Menu Overlay - Only show when menu is open for click outside to close */}
       {isMobileMenuOpen && (
-        <div className="md:hidden">
-          {/* Overlay - Increased opacity for stronger visual separation */}
-          <div
-            className="fixed inset-0 bg-black/75 backdrop-blur-sm z-40" // Increased opacity further to 75%
-            onClick={closeMobileMenu}
-            aria-hidden="true"
-          ></div>
-          {/* Mobile Menu Panel - Explicit height calculation and better flex layout */}
-          <div
-            className="fixed top-0 right-0 w-2/3 max-w-sm h-screen bg-white dark:bg-slate-900 border-l border-gray-200 dark:border-slate-700 shadow-xl p-6 z-50 flex flex-col transform translate-x-0 transition-transform duration-300 ease-out" // Changed h-full to h-screen
-          >
-            <div className="flex justify-end mb-4 flex-shrink-0">
-              <button
-                onClick={closeMobileMenu}
-                className="p-2 text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-md"
-                aria-label="Close navigation menu"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-            {/* Scrollable content area for the links */}
-            <div className="flex flex-col space-y-3 mt-4 overflow-y-auto flex-grow">
-              {user ? (
-                <>
-                  <Link
-                    to="/dashboard"
-                    className="flex items-center space-x-2 px-3 py-2 text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-md font-medium text-base"
-                    onClick={closeMobileMenu}
-                  >
-                    <Users className="h-5 w-5" />
-                    <span>Dashboard</span>
-                  </Link>
-
-                  {!user.isSubscribed && (
-                    <Link
-                      to="/pricing"
-                      className="flex items-center space-x-2 px-3 py-2 text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-md font-medium text-base"
-                      onClick={closeMobileMenu}
-                    >
-                      <Tag className="h-5 w-5" />
-                      <span>Pricing</span>
-                    </Link>
-                  )}
-
-                  <Link
-                    to="/account"
-                    className="flex items-center space-x-2 px-3 py-2 text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-md font-medium text-base"
-                    onClick={closeMobileMenu}
-                  >
-                    <User className="h-5 w-5" />
-                    <span>Account</span>
-                  </Link>
-
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center space-x-2 px-3 py-2 text-slate-800 dark:text-slate-200 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-md font-medium text-base"
-                  >
-                    <LogOut className="h-5 w-5" />
-                    <span>Logout</span>
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link
-                    to="/login"
-                    className="px-3 py-2 text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 font-medium rounded-md hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-all duration-200 text-base"
-                    onClick={closeMobileMenu}
-                  >
-                    Login
-                  </Link>
-                  <Link
-                    to="/signup"
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 text-white
-                                   px-4 py-2 rounded-md font-semibold
-                                   hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 text-base"
-                    onClick={closeMobileMenu}
-                  >
-                    Sign Up
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+        <div
+          className="fixed inset-0 bg-transparent z-40 md:hidden"
+          onClick={closeMobileMenu}
+          aria-hidden="true"
+        ></div>
       )}
     </nav>
   );
