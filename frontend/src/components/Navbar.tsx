@@ -193,14 +193,16 @@ export default function Navbar() {
       {/* Mobile Menu Overlay and Links */}
       {isMobileMenuOpen && (
         <div className="md:hidden">
-          {/* Overlay - Increased opacity and blur for stronger visual separation */}
+          {/* Overlay - Increased opacity for stronger visual separation */}
           <div
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm z-40" // Increased opacity further to 75%
             onClick={closeMobileMenu}
             aria-hidden="true"
           ></div>
-          {/* Mobile Menu Panel - Ensure it's above the overlay and content is visible */}
-          <div className="fixed top-0 right-0 w-2/3 max-w-sm h-full bg-white dark:bg-slate-900 border-l border-gray-200 dark:border-slate-700 shadow-xl p-6 z-50 flex flex-col transform translate-x-0 transition-transform duration-300 ease-out">
+          {/* Mobile Menu Panel - Explicit height calculation and better flex layout */}
+          <div
+            className="fixed top-0 right-0 w-2/3 max-w-sm h-screen bg-white dark:bg-slate-900 border-l border-gray-200 dark:border-slate-700 shadow-xl p-6 z-50 flex flex-col transform translate-x-0 transition-transform duration-300 ease-out" // Changed h-full to h-screen
+          >
             <div className="flex justify-end mb-4 flex-shrink-0">
               <button
                 onClick={closeMobileMenu}
@@ -212,8 +214,6 @@ export default function Navbar() {
             </div>
             {/* Scrollable content area for the links */}
             <div className="flex flex-col space-y-3 mt-4 overflow-y-auto flex-grow">
-              {" "}
-              {/* Added mt-4 for spacing, ensured overflow-y-auto and flex-grow */}
               {user ? (
                 <>
                   <Link
