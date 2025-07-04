@@ -193,14 +193,16 @@ export default function Navbar() {
       {/* Mobile Menu Overlay and Links */}
       {isMobileMenuOpen && (
         <div className="md:hidden">
-          {/* Overlay */}
+          {/* Overlay - Increased opacity and blur for stronger visual separation */}
           <div
-            className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-black/50 backdrop-blur-md z-40" // Changed bg-black/30 to bg-black/50 and backdrop-blur-sm to backdrop-blur-md
             onClick={closeMobileMenu}
             aria-hidden="true"
           ></div>
-          {/* Mobile Menu Panel */}
-          <div className="fixed top-0 right-0 w-2/3 max-w-sm h-full bg-white dark:bg-slate-800 shadow-lg p-6 z-50 transform translate-x-0 transition-transform duration-300 ease-out">
+          {/* Mobile Menu Panel - Added border, distinct shadow, and ensured good contrast */}
+          <div
+            className="fixed top-0 right-0 w-2/3 max-w-sm h-full bg-white dark:bg-slate-800 border-l border-gray-200 dark:border-slate-700 shadow-xl p-6 z-50 transform translate-x-0 transition-transform duration-300 ease-out" // Added border-l, border-gray-200, dark:border-slate-700, and changed shadow to shadow-xl
+          >
             <div className="flex justify-end mb-4">
               <button
                 onClick={closeMobileMenu}
@@ -215,7 +217,7 @@ export default function Navbar() {
                 <>
                   <Link
                     to="/dashboard"
-                    className="flex items-center space-x-2 px-3 py-2 text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-md font-medium text-base"
+                    className="flex items-center space-x-2 px-3 py-2 text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-md font-medium text-base" // Ensured good text contrast
                     onClick={closeMobileMenu}
                   >
                     <Users className="h-5 w-5" />
@@ -225,7 +227,7 @@ export default function Navbar() {
                   {!user.isSubscribed && (
                     <Link
                       to="/pricing"
-                      className="flex items-center space-x-2 px-3 py-2 text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-md font-medium text-base"
+                      className="flex items-center space-x-2 px-3 py-2 text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-md font-medium text-base" // Ensured good text contrast
                       onClick={closeMobileMenu}
                     >
                       <Tag className="h-5 w-5" />
@@ -235,7 +237,7 @@ export default function Navbar() {
 
                   <Link
                     to="/account"
-                    className="flex items-center space-x-2 px-3 py-2 text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-md font-medium text-base"
+                    className="flex items-center space-x-2 px-3 py-2 text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-md font-medium text-base" // Ensured good text contrast
                     onClick={closeMobileMenu}
                   >
                     <User className="h-5 w-5" />
@@ -244,7 +246,7 @@ export default function Navbar() {
 
                   <button
                     onClick={handleLogout}
-                    className="flex items-center space-x-2 px-3 py-2 text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-md font-medium text-base"
+                    className="flex items-center space-x-2 px-3 py-2 text-slate-800 dark:text-slate-200 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-md font-medium text-base" // Ensured good text contrast
                   >
                     <LogOut className="h-5 w-5" />
                     <span>Logout</span>
@@ -254,7 +256,7 @@ export default function Navbar() {
                 <>
                   <Link
                     to="/login"
-                    className="px-3 py-2 text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium rounded-md hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-all duration-200 text-base"
+                    className="px-3 py-2 text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 font-medium rounded-md hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-all duration-200 text-base" // Ensured good text contrast
                     onClick={closeMobileMenu}
                   >
                     Login
