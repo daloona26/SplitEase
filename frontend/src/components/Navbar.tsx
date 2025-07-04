@@ -195,17 +195,13 @@ export default function Navbar() {
         <div className="md:hidden">
           {/* Overlay - Increased opacity and blur for stronger visual separation */}
           <div
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40" // Increased opacity from /50 to /70
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
             onClick={closeMobileMenu}
             aria-hidden="true"
           ></div>
           {/* Mobile Menu Panel - Ensure it's above the overlay and content is visible */}
-          <div
-            className="fixed top-0 right-0 w-2/3 max-w-sm h-full bg-white dark:bg-slate-900 border-l border-gray-200 dark:border-slate-700 shadow-xl p-6 z-50 flex flex-col transform translate-x-0 transition-transform duration-300 ease-out overflow-y-auto" // Added flex flex-col and overflow-y-auto, slightly darker dark mode background
-          >
+          <div className="fixed top-0 right-0 w-2/3 max-w-sm h-full bg-white dark:bg-slate-900 border-l border-gray-200 dark:border-slate-700 shadow-xl p-6 z-50 flex flex-col transform translate-x-0 transition-transform duration-300 ease-out">
             <div className="flex justify-end mb-4 flex-shrink-0">
-              {" "}
-              {/* flex-shrink-0 to prevent it from shrinking */}
               <button
                 onClick={closeMobileMenu}
                 className="p-2 text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-md"
@@ -215,9 +211,9 @@ export default function Navbar() {
               </button>
             </div>
             {/* Scrollable content area for the links */}
-            <div className="flex flex-col space-y-3 flex-grow">
+            <div className="flex flex-col space-y-3 mt-4 overflow-y-auto flex-grow">
               {" "}
-              {/* flex-grow to take available space */}
+              {/* Added mt-4 for spacing, ensured overflow-y-auto and flex-grow */}
               {user ? (
                 <>
                   <Link
