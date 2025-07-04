@@ -1,6 +1,6 @@
 import type React from "react";
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth, api } from "../contexts/AuthContext";
 import Navbar from "../components/Navbar";
 import {
@@ -18,18 +18,13 @@ import {
   CheckCircle,
   AlertCircle,
   RefreshCw,
-  MoreVertical,
   Shuffle,
   Percent,
   Calculator,
-  UserCheck,
-  UserX,
-  Star,
-  Shield,
-  Zap,
+  Star, // Used for trial banner
 } from "lucide-react";
 
-// Interfaces
+// Interfaces (kept as is, no changes needed here for responsiveness)
 interface Member {
   id: string;
   name: string;
@@ -195,9 +190,9 @@ export default function GroupEnhanced() {
     deleteExpense: false,
     redistributeExpense: false,
     addMember: false,
-    deleteGroup: false,
+    deleteGroup: false, // Not used in this component, but good to keep if inherited
     removeMember: false,
-    updateGroup: false,
+    updateGroup: false, // Not used in this component, but good to keep if inherited
   });
 
   // Error state
@@ -340,10 +335,16 @@ export default function GroupEnhanced() {
       setError(errorMessage);
 
       if (err.response?.status === 403) {
-        navigate("/dashboard");
+        showMessageBox(
+          "error",
+          "Access denied to group. Redirecting to dashboard..."
+        );
+        setTimeout(() => navigate("/dashboard"), 2000);
       } else if (err.response?.status === 404) {
         showMessageBox("error", "Group not found. Redirecting to dashboard...");
         setTimeout(() => navigate("/dashboard"), 2000);
+      } else {
+        showMessageBox("error", errorMessage);
       }
     } finally {
       setLoading((prev) => ({ ...prev, group: false }));
@@ -929,6 +930,7 @@ export default function GroupEnhanced() {
         participantUserIds: prev.participantUserIds.includes(userId)
           ? prev.participantUserIds.filter((id) => id !== userId)
           : [...prev.participantUserIds, userId],
+        // Remove custom share if participant is unticked
         customShares: prev.customShares.hasOwnProperty(userId)
           ? (({ [userId]: removed, ...rest }) => rest)(prev.customShares)
           : prev.customShares,
@@ -1028,9 +1030,12 @@ export default function GroupEnhanced() {
   const renderLoadingSpinner = () => (
     <div className="flex justify-center items-center py-12">
       <div className="relative">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-slate-200"></div>
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent absolute top-0 left-0"></div>
+        <div className="animate-spin rounded-full h-10 w-10 xxs:h-12 xxs:w-12 border-4 border-slate-200 dark:border-slate-700"></div>
+        <div className="animate-spin rounded-full h-10 w-10 xxs:h-12 xxs:w-12 border-4 border-blue-500 dark:border-blue-400 border-t-transparent absolute top-0 left-0"></div>
       </div>
+      <p className="text-slate-700 dark:text-slate-300 text-base xxs:text-lg mt-4 font-medium ml-4">
+        Loading...
+      </p>
     </div>
   );
 
@@ -1038,52 +1043,63 @@ export default function GroupEnhanced() {
     if (!messageBox.show) return null;
 
     const iconMap = {
-      info: <AlertCircle className="h-8 w-8 text-blue-500" />,
-      success: <CheckCircle className="h-8 w-8 text-green-500" />,
-      error: <XCircle className="h-8 w-8 text-red-500" />,
-      confirm: <AlertCircle className="h-8 w-8 text-amber-500" />,
+      info: (
+        <AlertCircle className="h-7 w-7 sm:h-8 sm:w-8 text-blue-500 dark:text-blue-400" />
+      ),
+      success: (
+        <CheckCircle className="h-7 w-7 sm:h-8 sm:w-8 text-green-500 dark:text-green-400" />
+      ),
+      error: (
+        <XCircle className="h-7 w-7 sm:h-8 sm:w-8 text-red-500 dark:text-red-400" />
+      ),
+      confirm: (
+        <AlertCircle className="h-7 w-7 sm:h-8 sm:w-8 text-amber-500 dark:text-amber-400" />
+      ),
     };
 
     const bgColorMap = {
-      info: "bg-blue-50/90 border-blue-200 text-blue-800",
-      success: "bg-green-50/90 border-green-200 text-green-800",
-      error: "bg-red-50/90 border-red-200 text-red-800",
-      confirm: "bg-amber-50/90 border-amber-200 text-amber-800",
+      info: "bg-blue-50/90 border-blue-200 text-blue-800 dark:bg-blue-950/90 dark:border-blue-800 dark:text-blue-200",
+      success:
+        "bg-green-50/90 border-green-200 text-green-800 dark:bg-green-950/90 dark:border-green-800 dark:text-green-200",
+      error:
+        "bg-red-50/90 border-red-200 text-red-800 dark:bg-red-950/90 dark:border-red-800 dark:text-red-200",
+      confirm:
+        "bg-amber-50/90 border-amber-200 text-amber-800 dark:bg-amber-950/90 dark:border-amber-800 dark:text-amber-200",
     };
 
     const buttonColorMap = {
-      info: "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800",
+      info: "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:ring-blue-500 dark:from-blue-500 dark:to-blue-600 dark:hover:from-blue-600 dark:hover:to-blue-700 dark:focus:ring-blue-400",
       success:
-        "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800",
+        "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 focus:ring-green-500 dark:from-green-500 dark:to-green-600 dark:hover:from-green-600 dark:hover:to-green-700 dark:focus:ring-green-400",
       error:
-        "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800",
+        "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:ring-red-500 dark:from-red-500 dark:to-red-600 dark:hover:from-red-600 dark:hover:to-red-700 dark:focus:ring-red-400",
       confirm:
-        "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800",
+        "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:ring-red-500 dark:from-red-500 dark:to-red-600 dark:hover:from-red-600 dark:hover:to-red-700 dark:focus:ring-red-400",
     };
 
     const buttonBaseClass =
-      "px-6 py-3 rounded-xl font-semibold transition-all duration-200 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 shadow-lg";
+      "px-4 py-2 xs:px-6 xs:py-3 rounded-lg xs:rounded-xl font-semibold transition-all duration-200 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 shadow-lg text-sm xs:text-base";
 
     return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
         <div
-          className={`max-w-md w-full p-8 rounded-3xl border-2 shadow-2xl ${
+          className={`max-w-xs xxs:max-w-sm xs:max-w-md w-full p-6 xs:p-8 rounded-2xl xs:rounded-3xl border-2 shadow-2xl ${
             bgColorMap[messageBox.type]
-          } bg-white/90 backdrop-blur-sm transform transition-all duration-300 scale-100`}
+          } bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm transform transition-all duration-300 scale-100`}
         >
-          <div className="flex flex-col items-center text-center space-y-6">
+          <div className="flex flex-col items-center text-center space-y-4 xs:space-y-6">
             <div className="flex-shrink-0">{iconMap[messageBox.type]}</div>
             <div>
-              <p className="text-lg font-semibold leading-relaxed">
+              <p className="text-base xs:text-lg font-semibold leading-relaxed">
                 {messageBox.message}
               </p>
             </div>
-            <div className="flex space-x-4 w-full">
+            <div className="flex flex-col xs:flex-row space-y-2 xs:space-y-0 xs:space-x-4 w-full">
               {messageBox.type === "confirm" ? (
                 <>
                   <button
                     onClick={messageBox.onCancel}
-                    className={`${buttonBaseClass} flex-1 bg-slate-200 text-slate-700 hover:bg-slate-300 focus:ring-slate-400`}
+                    className={`${buttonBaseClass} flex-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600 focus:ring-slate-400 dark:focus:ring-slate-500`}
                   >
                     Cancel
                   </button>
@@ -1091,7 +1107,7 @@ export default function GroupEnhanced() {
                     onClick={messageBox.onConfirm}
                     className={`${buttonBaseClass} flex-1 text-white ${
                       buttonColorMap[messageBox.type]
-                    } focus:ring-red-500`}
+                    }`}
                     disabled={
                       actionLoading.removeMember || actionLoading.deleteExpense
                     }
@@ -1108,7 +1124,7 @@ export default function GroupEnhanced() {
                   onClick={messageBox.onConfirm}
                   className={`${buttonBaseClass} w-full text-white ${
                     buttonColorMap[messageBox.type]
-                  } focus:ring-opacity-50`}
+                  }`}
                 >
                   OK
                 </button>
@@ -1124,10 +1140,10 @@ export default function GroupEnhanced() {
     <div className="space-y-6">
       {/* Filters */}
       {showFilters && (
-        <div className="bg-white/60 backdrop-blur-sm p-6 rounded-2xl border-2 border-white/20 shadow-lg">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm p-4 sm:p-6 rounded-xl sm:rounded-2xl border-2 border-white/20 dark:border-slate-700/50 shadow-lg">
+          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                 Category
               </label>
               <select
@@ -1135,7 +1151,7 @@ export default function GroupEnhanced() {
                 onChange={(e) =>
                   setFilters((prev) => ({ ...prev, category: e.target.value }))
                 }
-                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 backdrop-blur-sm"
+                className="w-full px-3 py-2 sm:px-4 sm:py-3 border-2 border-slate-200 dark:border-slate-600 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white/50 dark:bg-slate-700/50 backdrop-blur-sm text-sm text-slate-700 dark:text-slate-200"
               >
                 <option value="all">All Categories</option>
                 {EXPENSE_CATEGORIES.map((cat) => (
@@ -1146,7 +1162,7 @@ export default function GroupEnhanced() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                 Start Date
               </label>
               <input
@@ -1155,11 +1171,11 @@ export default function GroupEnhanced() {
                 onChange={(e) =>
                   setFilters((prev) => ({ ...prev, startDate: e.target.value }))
                 }
-                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 backdrop-blur-sm"
+                className="w-full px-3 py-2 sm:px-4 sm:py-3 border-2 border-slate-200 dark:border-slate-600 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white/50 dark:bg-slate-700/50 backdrop-blur-sm text-sm text-slate-700 dark:text-slate-200"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                 End Date
               </label>
               <input
@@ -1168,11 +1184,11 @@ export default function GroupEnhanced() {
                 onChange={(e) =>
                   setFilters((prev) => ({ ...prev, endDate: e.target.value }))
                 }
-                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 backdrop-blur-sm"
+                className="w-full px-3 py-2 sm:px-4 sm:py-3 border-2 border-slate-200 dark:border-slate-600 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white/50 dark:bg-slate-700/50 backdrop-blur-sm text-sm text-slate-700 dark:text-slate-200"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                 Search
               </label>
               <input
@@ -1182,7 +1198,7 @@ export default function GroupEnhanced() {
                 onChange={(e) =>
                   setFilters((prev) => ({ ...prev, search: e.target.value }))
                 }
-                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 backdrop-blur-sm"
+                className="w-full px-3 py-2 sm:px-4 sm:py-3 border-2 border-slate-200 dark:border-slate-600 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white/50 dark:bg-slate-700/50 backdrop-blur-sm text-sm text-slate-700 dark:text-slate-200"
               />
             </div>
           </div>
@@ -1193,60 +1209,67 @@ export default function GroupEnhanced() {
       {loading.expenses ? (
         renderLoadingSpinner()
       ) : expenses.length === 0 ? (
-        <div className="text-center py-16">
-          <DollarSign className="h-20 w-20 text-slate-300 mx-auto mb-6" />
-          <p className="text-slate-500 text-lg font-medium">
+        <div className="text-center py-8 sm:py-16">
+          <DollarSign className="h-16 w-16 sm:h-20 sm:w-20 text-slate-300 dark:text-slate-600 mx-auto mb-4 sm:mb-6" />
+          <p className="text-slate-500 dark:text-slate-400 text-base sm:text-lg font-medium">
             No expenses found.
+          </p>
+          <p className="text-slate-400 dark:text-slate-500 text-sm mt-2">
+            Try adjusting your filters or add a new expense.
           </p>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {expenses.map((expense) => (
             <div
               key={expense.id}
-              className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl border-2 border-white/20 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+              className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-5 sm:p-8 rounded-xl sm:rounded-2xl border-2 border-white/20 dark:border-slate-700/50 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
             >
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-4 mb-4">
-                    <h3 className="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                <div className="flex-1 w-full sm:w-auto mb-4 sm:mb-0">
+                  <div className="flex flex-col xxs:flex-row items-start xxs:items-center space-y-2 xxs:space-y-0 xxs:space-x-3 mb-3">
+                    <h3 className="text-lg xs:text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent break-words max-w-[calc(100%-80px)] xxs:max-w-none">
                       {expense.description}
                     </h3>
-                    <span className="px-3 py-1 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs rounded-full font-semibold shadow-lg">
+                    <span className="px-2 py-0.5 xs:px-3 xs:py-1 bg-gradient-to-r from-blue-500 to-indigo-600 dark:from-blue-400 dark:to-indigo-500 text-white text-xs rounded-full font-semibold shadow-md shrink-0">
                       {expense.category}
                     </span>
                   </div>
-                  <div className="text-3xl font-bold text-green-600 mb-4">
+                  <div className="text-2xl xs:text-3xl font-bold text-green-600 dark:text-green-400 mb-3">
                     ${expense.amount.toFixed(2)}
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-slate-600">
+                  <div className="grid grid-cols-1 xxs:grid-cols-2 gap-2 xs:gap-4 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                     <div>
-                      <span className="font-semibold">Paid by:</span>{" "}
+                      <span className="font-semibold block sm:inline">
+                        Paid by:
+                      </span>{" "}
                       {getPayerNamesForDisplay(expense.payments)}
                     </div>
                     <div>
-                      <span className="font-semibold">Participants:</span>{" "}
+                      <span className="font-semibold block sm:inline">
+                        Participants:
+                      </span>{" "}
                       {getParticipantNamesForDisplay(expense.participants)}
                     </div>
                   </div>
-                  <div className="mt-3 text-sm text-slate-500 font-medium">
+                  <div className="mt-2 text-xs sm:text-sm text-slate-500 dark:text-slate-500 font-medium">
                     {new Date(expense.expense_date).toLocaleDateString()}
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1.5 xs:space-x-2 mt-4 sm:mt-0 flex-shrink-0">
                   {(groupDetails?.creator_user_id === user?.id ||
                     expense.payments.some((p) => p.user_id === user?.id)) && (
                     <>
                       <button
                         onClick={() => prepareEditExpense(expense)}
-                        className="p-3 text-blue-500 hover:bg-blue-100 rounded-xl transition-colors shadow-lg bg-white/80 backdrop-blur-sm"
+                        className="p-2 xs:p-3 text-blue-500 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg xs:rounded-xl transition-colors shadow-md bg-white/80 dark:bg-slate-700/80 backdrop-blur-sm"
                         title="Edit expense"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => prepareRedistributeExpense(expense)}
-                        className="p-3 text-amber-500 hover:bg-amber-100 rounded-xl transition-colors shadow-lg bg-white/80 backdrop-blur-sm"
+                        className="p-2 xs:p-3 text-amber-500 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900 rounded-lg xs:rounded-xl transition-colors shadow-md bg-white/80 dark:bg-slate-700/80 backdrop-blur-sm"
                         title="Redistribute expense"
                       >
                         <Shuffle className="h-4 w-4" />
@@ -1255,11 +1278,11 @@ export default function GroupEnhanced() {
                         onClick={() =>
                           showMessageBox(
                             "confirm",
-                            "Are you sure you want to delete this expense?",
+                            "Are you sure you want to delete this expense? This action cannot be undone.",
                             () => deleteExpense(expense.id)
                           )
                         }
-                        className="p-3 text-red-500 hover:bg-red-100 rounded-xl transition-colors shadow-lg bg-white/80 backdrop-blur-sm"
+                        className="p-2 xs:p-3 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg xs:rounded-xl transition-colors shadow-md bg-white/80 dark:bg-slate-700/80 backdrop-blur-sm"
                         title="Delete expense"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -1280,61 +1303,64 @@ export default function GroupEnhanced() {
       {loading.balances ? (
         renderLoadingSpinner()
       ) : balances.length === 0 ? (
-        <div className="text-center py-16">
-          <TrendingUp className="h-20 w-20 text-slate-300 mx-auto mb-6" />
-          <p className="text-slate-500 text-lg font-medium">
+        <div className="text-center py-8 sm:py-16">
+          <TrendingUp className="h-16 w-16 sm:h-20 sm:w-20 text-slate-300 dark:text-slate-600 mx-auto mb-4 sm:mb-6" />
+          <p className="text-slate-500 dark:text-slate-400 text-base sm:text-lg font-medium">
             No balance data available.
+          </p>
+          <p className="text-slate-400 dark:text-slate-500 text-sm mt-2">
+            Add expenses and members to see balances.
           </p>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {balances.map((balance) => (
             <div
               key={balance.user_id}
-              className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl border-2 border-white/20 hover:shadow-2xl transition-all duration-300"
+              className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-5 sm:p-8 rounded-xl sm:rounded-2xl border-2 border-white/20 dark:border-slate-700/50 hover:shadow-2xl transition-all duration-300"
             >
-              <div className="flex justify-between items-center">
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent mb-2">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                <div className="flex-1 w-full sm:w-auto mb-4 sm:mb-0">
+                  <h3 className="text-lg xs:text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent mb-1.5 sm:mb-2">
                     {balance.name}
                   </h3>
-                  <p className="text-sm text-slate-500 mb-6 font-medium">
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-4 sm:mb-6 font-medium">
                     {balance.email}
                   </p>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="text-center p-4 bg-green-50/80 backdrop-blur-sm rounded-xl border border-green-200">
-                      <span className="block text-sm font-semibold text-green-700 mb-1">
+                  <div className="grid grid-cols-1 xxs:grid-cols-2 lg:grid-cols-3 gap-3 xs:gap-6">
+                    <div className="text-center p-3 xs:p-4 bg-green-50/80 dark:bg-green-950/80 backdrop-blur-sm rounded-lg xs:rounded-xl border border-green-200 dark:border-green-800">
+                      <span className="block text-xs sm:text-sm font-semibold text-green-700 dark:text-green-300 mb-0.5 sm:mb-1">
                         Total Paid
                       </span>
-                      <span className="text-2xl font-bold text-green-600">
+                      <span className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">
                         ${balance.total_paid.toFixed(2)}
                       </span>
                     </div>
-                    <div className="text-center p-4 bg-red-50/80 backdrop-blur-sm rounded-xl border border-red-200">
-                      <span className="block text-sm font-semibold text-red-700 mb-1">
+                    <div className="text-center p-3 xs:p-4 bg-red-50/80 dark:bg-red-950/80 backdrop-blur-sm rounded-lg xs:rounded-xl border border-red-200 dark:border-red-800">
+                      <span className="block text-xs sm:text-sm font-semibold text-red-700 dark:text-red-300 mb-0.5 sm:mb-1">
                         Total Owed
                       </span>
-                      <span className="text-2xl font-bold text-red-600">
+                      <span className="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400">
                         ${balance.total_owed.toFixed(2)}
                       </span>
                     </div>
-                    <div className="text-center p-4 bg-slate-50/80 backdrop-blur-sm rounded-xl border border-slate-200">
-                      <span className="block text-sm font-semibold text-slate-700 mb-1">
+                    <div className="text-center p-3 xs:p-4 bg-slate-50/80 dark:bg-slate-700/80 backdrop-blur-sm rounded-lg xs:rounded-xl border border-slate-200 dark:border-slate-600">
+                      <span className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-0.5 sm:mb-1">
                         Balance
                       </span>
                       <span
-                        className={`text-2xl font-bold ${
+                        className={`text-xl sm:text-2xl font-bold ${
                           balance.balance > 0
-                            ? "text-green-600"
+                            ? "text-green-600 dark:text-green-400"
                             : balance.balance < 0
-                            ? "text-red-600"
-                            : "text-slate-600"
+                            ? "text-red-600 dark:text-red-400"
+                            : "text-slate-600 dark:text-slate-300"
                         }`}
                       >
                         ${Math.abs(balance.balance).toFixed(2)}
                       </span>
-                      <span className="block text-sm text-slate-500 mt-1 font-medium">
+                      <span className="block text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
                         {balance.balance > 0
                           ? "Should receive"
                           : balance.balance < 0
@@ -1349,16 +1375,16 @@ export default function GroupEnhanced() {
           ))}
 
           {/* Balance verification summary */}
-          <div className="bg-blue-50/90 backdrop-blur-sm p-6 rounded-2xl border-2 border-blue-200 shadow-lg">
-            <h4 className="font-bold text-blue-900 mb-3 text-lg">
+          <div className="bg-blue-50/90 dark:bg-blue-950/90 backdrop-blur-sm p-4 sm:p-6 rounded-xl sm:rounded-2xl border-2 border-blue-200 dark:border-blue-800 shadow-lg">
+            <h4 className="font-bold text-blue-900 dark:text-blue-100 mb-2 text-base sm:text-lg">
               Balance Verification
             </h4>
-            <div className="text-sm text-blue-800">
+            <div className="text-sm text-blue-800 dark:text-blue-200">
               <p className="font-medium">
                 Total balance sum: $
                 {balances.reduce((sum, b) => sum + b.balance, 0).toFixed(2)}
               </p>
-              <p className="text-xs mt-2 font-semibold">
+              <p className="text-xs mt-1.5 font-semibold">
                 {Math.abs(balances.reduce((sum, b) => sum + b.balance, 0)) <=
                 0.01
                   ? "✓ System is balanced"
@@ -1386,49 +1412,57 @@ export default function GroupEnhanced() {
         {loading.members ? (
           renderLoadingSpinner()
         ) : members.length === 0 ? (
-          <div className="text-center py-16">
-            <UsersIcon className="h-20 w-20 text-slate-300 mx-auto mb-6" />
-            <p className="text-slate-500 text-lg font-medium">
+          <div className="text-center py-8 sm:py-16">
+            <UsersIcon className="h-16 w-16 sm:h-20 sm:w-20 text-slate-300 dark:text-slate-600 mx-auto mb-4 sm:mb-6" />
+            <p className="text-slate-500 dark:text-slate-400 text-base sm:text-lg font-medium">
               No members found.
+            </p>
+            <p className="text-slate-400 dark:text-slate-500 text-sm mt-2">
+              Add members to get your group started.
             </p>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {members.map((member) => (
               <div
                 key={member.id}
-                className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl border-2 border-white/20 hover:shadow-2xl transition-all duration-300"
+                className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-5 sm:p-8 rounded-xl sm:rounded-2xl border-2 border-white/20 dark:border-slate-700/50 hover:shadow-2xl transition-all duration-300"
               >
                 <div className="flex justify-between items-center">
                   <div className="flex-1">
-                    <div className="flex items-center space-x-4 mb-3">
-                      <h3 className="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                    <div className="flex flex-col xxs:flex-row items-start xxs:items-center space-y-1 xxs:space-y-0 xxs:space-x-3 mb-2 sm:mb-3">
+                      <h3 className="text-lg xs:text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
                         {member.name}
                       </h3>
                       {isCurrentUserCreator && member.id === user?.id && (
-                        <span className="px-3 py-1 text-xs rounded-full bg-gradient-to-r from-purple-500 to-pink-600 text-white font-semibold shadow-lg">
+                        <span className="px-2 py-0.5 xs:px-3 xs:py-1 text-xxs xs:text-xs rounded-full bg-gradient-to-r from-purple-500 to-pink-600 dark:from-purple-400 dark:to-pink-500 text-white font-semibold shadow-md">
                           Creator
                         </span>
                       )}
+                      {!isCurrentUserCreator && member.id === user?.id && (
+                        <span className="px-2 py-0.5 xs:px-3 xs:py-1 text-xxs xs:text-xs rounded-full bg-slate-100 dark:bg-slate-600 text-slate-700 dark:text-slate-300 font-semibold shadow-md">
+                          You
+                        </span>
+                      )}
                     </div>
-                    <p className="text-sm text-slate-500 mb-3 font-medium">
+                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-2 sm:mb-3 font-medium">
                       {member.email}
                     </p>
-                    <p className="text-xs text-slate-400 font-medium">
+                    <p className="text-xxs sm:text-xs text-slate-400 dark:text-slate-500 font-medium">
                       Joined: {new Date(member.joined_at).toLocaleDateString()}
                     </p>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1.5 xs:space-x-2">
                     {isCurrentUserCreator && member.id !== user?.id && (
                       <button
                         onClick={() =>
                           showMessageBox(
                             "confirm",
-                            `Are you sure you want to remove ${member.name} from the group?`,
+                            `Are you sure you want to remove ${member.name} from the group? This action cannot be undone.`,
                             () => removeMember(member.id)
                           )
                         }
-                        className="p-3 text-red-500 hover:bg-red-100 rounded-xl transition-colors shadow-lg bg-white/80 backdrop-blur-sm"
+                        className="p-2 xs:p-3 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg xs:rounded-xl transition-colors shadow-md bg-white/80 dark:bg-slate-700/80 backdrop-blur-sm"
                         title="Remove member"
                         disabled={actionLoading.removeMember}
                       >
@@ -1446,50 +1480,50 @@ export default function GroupEnhanced() {
   };
 
   const renderStatsTab = () => (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl border-2 border-white/20 shadow-xl text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <DollarSign className="h-8 w-8 text-white" />
+      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 sm:p-8 rounded-xl sm:rounded-2xl border-2 border-white/20 dark:border-slate-700/50 shadow-lg sm:shadow-xl text-center">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-green-500 to-emerald-600 dark:from-green-400 dark:to-emerald-500 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 shadow-lg">
+            <DollarSign className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
           </div>
-          <p className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-2">
+          <p className="text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5 sm:mb-2">
             Total Amount
           </p>
-          <p className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+          <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
             ${stats.totalAmount.toFixed(2)}
           </p>
         </div>
-        <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl border-2 border-white/20 shadow-xl text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <BarChart3 className="h-8 w-8 text-white" />
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 sm:p-8 rounded-xl sm:rounded-2xl border-2 border-white/20 dark:border-slate-700/50 shadow-lg sm:shadow-xl text-center">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-400 dark:to-indigo-500 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 shadow-lg">
+            <BarChart3 className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
           </div>
-          <p className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-2">
+          <p className="text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5 sm:mb-2">
             Total Expenses
           </p>
-          <p className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+          <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
             {stats.totalCount}
           </p>
         </div>
-        <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl border-2 border-white/20 shadow-xl text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <TrendingUp className="h-8 w-8 text-white" />
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 sm:p-8 rounded-xl sm:rounded-2xl border-2 border-white/20 dark:border-slate-700/50 shadow-lg sm:shadow-xl text-center">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-purple-500 to-pink-600 dark:from-purple-400 dark:to-pink-500 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 shadow-lg">
+            <TrendingUp className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
           </div>
-          <p className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-2">
+          <p className="text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5 sm:mb-2">
             Average
           </p>
-          <p className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+          <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
             ${stats.averageAmount.toFixed(2)}
           </p>
         </div>
-        <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl border-2 border-white/20 shadow-xl text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <PieChart className="h-8 w-8 text-white" />
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 sm:p-8 rounded-xl sm:rounded-2xl border-2 border-white/20 dark:border-slate-700/50 shadow-lg sm:shadow-xl text-center">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-orange-500 to-red-600 dark:from-orange-400 dark:to-red-500 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 shadow-lg">
+            <PieChart className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
           </div>
-          <p className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-2">
+          <p className="text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5 sm:mb-2">
             Categories
           </p>
-          <p className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+          <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
             {stats.categoriesCount}
           </p>
         </div>
@@ -1497,29 +1531,29 @@ export default function GroupEnhanced() {
 
       {/* Categories Breakdown */}
       {categories.length > 0 && (
-        <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl border-2 border-white/20 shadow-xl">
-          <h3 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent mb-6">
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 sm:p-8 rounded-xl sm:rounded-2xl border-2 border-white/20 dark:border-slate-700/50 shadow-lg sm:shadow-xl">
+          <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent mb-4 sm:mb-6">
             Expenses by Category
           </h3>
           <div className="space-y-4">
             {categories.map((category) => (
               <div
                 key={category.category}
-                className="flex justify-between items-center p-6 bg-slate-50/80 backdrop-blur-sm rounded-xl border border-slate-200 hover:shadow-lg transition-all duration-200"
+                className="flex flex-col xxs:flex-row justify-between items-start xxs:items-center p-4 sm:p-6 bg-slate-50/80 dark:bg-slate-700/80 backdrop-blur-sm rounded-lg sm:rounded-xl border border-slate-200 dark:border-slate-600 hover:shadow-lg transition-all duration-200"
               >
                 <div>
-                  <h4 className="font-bold text-slate-900 capitalize text-lg">
+                  <h4 className="font-bold text-slate-900 dark:text-slate-100 capitalize text-base sm:text-lg mb-1 xxs:mb-0">
                     {category.category}
                   </h4>
-                  <p className="text-sm text-slate-500 font-medium">
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
                     {category.expenses_count} expenses
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold text-slate-900 text-xl">
+                <div className="text-left xxs:text-right mt-3 xxs:mt-0">
+                  <p className="font-bold text-slate-900 dark:text-slate-100 text-lg sm:text-xl">
                     ${category.total_amount.toFixed(2)}
                   </p>
-                  <p className="text-sm text-slate-500 font-medium">
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
                     Avg: ${category.average_amount.toFixed(2)}
                   </p>
                 </div>
@@ -1534,9 +1568,9 @@ export default function GroupEnhanced() {
   // Main render
   if (loading.group) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950">
         <Navbar />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {renderLoadingSpinner()}
         </div>
       </div>
@@ -1545,12 +1579,20 @@ export default function GroupEnhanced() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950">
         <Navbar />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <XCircle className="h-20 w-20 text-red-500 mx-auto mb-6" />
-            <p className="text-red-600 text-lg font-medium">{error}</p>
+        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center p-8 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 dark:border-slate-700/50">
+            <XCircle className="h-16 w-16 sm:h-20 sm:w-20 text-red-500 dark:text-red-400 mx-auto mb-4 sm:mb-6" />
+            <p className="text-red-600 dark:text-red-400 text-base sm:text-lg font-medium">
+              {error}
+            </p>
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="mt-6 px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors shadow-md hover:shadow-lg"
+            >
+              Go to Dashboard
+            </button>
           </div>
         </div>
       </div>
@@ -1559,14 +1601,20 @@ export default function GroupEnhanced() {
 
   if (!groupDetails) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950">
         <Navbar />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <AlertCircle className="h-20 w-20 text-amber-500 mx-auto mb-6" />
-            <p className="text-slate-600 text-lg font-medium">
-              Group not found.
+        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center p-8 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 dark:border-slate-700/50">
+            <AlertCircle className="h-16 w-16 sm:h-20 sm:w-20 text-amber-500 dark:text-amber-400 mx-auto mb-4 sm:mb-6" />
+            <p className="text-slate-600 dark:text-slate-400 text-base sm:text-lg font-medium">
+              Group not found or inaccessible.
             </p>
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="mt-6 px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors shadow-md hover:shadow-lg"
+            >
+              Go to Dashboard
+            </button>
           </div>
         </div>
       </div>
@@ -1574,60 +1622,131 @@ export default function GroupEnhanced() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950 font-sans antialiased transition-colors duration-300">
       <Navbar />
 
       {/* Message Box */}
       {renderMessageBox()}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Main Content Container */}
+      <div
+        className="max-w-xxs mx-auto px-3
+                   xs:max-w-sm xs:px-4
+                   sm:max-w-md sm:px-6
+                   md:max-w-2xl md:px-8
+                   lg:max-w-4xl lg:px-10
+                   xl:max-w-6xl xl:px-12
+                   2xl:max-w-7xl 2xl:px-14
+                   3xl:max-w-full 3xl:px-20
+                   4xl:px-32 5xl:px-48 py-6 sm:py-8"
+      >
+        {/* Trial Status Banner */}
+        {user?.isTrialActive &&
+          new Date(user.trialEndsAt || 0) > new Date() && (
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 border-l-4 border-blue-500 dark:border-blue-400 text-blue-800 dark:text-blue-200 p-4 sm:p-6 mb-6 rounded-xl sm:rounded-2xl shadow-lg backdrop-blur-sm border border-blue-200/50 dark:border-blue-800/50">
+              <div className="flex items-start">
+                <Star className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400 mr-3 mt-1" />
+                <div>
+                  <p className="font-bold text-base sm:text-lg">
+                    Free Trial Active!
+                  </p>
+                  <p className="text-xs sm:text-sm mt-1 leading-tight">
+                    Your trial ends on:{" "}
+                    <span className="font-semibold">
+                      {new Date(user.trialEndsAt || "").toLocaleDateString(
+                        "en-US"
+                      )}
+                      .
+                    </span>{" "}
+                    Enjoy premium features!
+                  </p>
+                  <p className="mt-2 text-xs sm:text-sm">
+                    Upgrade anytime from the{" "}
+                    <Link
+                      to="/pricing"
+                      className="underline font-semibold hover:text-blue-900 dark:hover:text-blue-100 transition-colors"
+                    >
+                      Pricing Page
+                    </Link>{" "}
+                    to continue uninterrupted service.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+        {/* Expired Trial Banner */}
+        {user?.isTrialActive &&
+          new Date(user.trialEndsAt || 0) <= new Date() && (
+            <div className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-950/50 dark:to-pink-950/50 border-l-4 border-red-500 dark:border-red-400 text-red-800 dark:text-red-200 p-4 sm:p-6 mb-6 rounded-xl sm:rounded-2xl shadow-lg backdrop-blur-sm border border-red-200/50 dark:border-red-800/50">
+              <div className="flex items-start">
+                <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6 text-red-600 dark:text-red-400 mr-3 mt-1" />
+                <div>
+                  <p className="font-bold text-base sm:text-lg">
+                    Your Free Trial Has Expired!
+                  </p>
+                  <p className="text-xs sm:text-sm mt-1 leading-tight">
+                    Please{" "}
+                    <Link
+                      to="/pricing"
+                      className="underline font-semibold hover:text-red-900 dark:hover:text-red-100 transition-colors"
+                    >
+                      subscribe to a Pro plan
+                    </Link>{" "}
+                    to continue using all SplitEase features.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
         {/* Group Header */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 p-8 mb-8">
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent mb-3">
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl xs:rounded-3xl shadow-xl xs:shadow-2xl border border-white/20 dark:border-slate-700/50 p-5 xs:p-8 mb-6 xs:mb-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+            <div className="mb-4 sm:mb-0">
+              <h1 className="text-3xl xs:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent mb-2 sm:mb-3">
                 {groupDetails.name}
               </h1>
-              <p className="text-slate-600 mb-6 text-lg leading-relaxed">
+              <p className="text-slate-600 dark:text-slate-400 mb-4 sm:mb-6 text-sm xs:text-lg leading-relaxed">
                 {groupDetails.description}
               </p>
-              <div className="flex items-center space-x-8 text-sm text-slate-500">
-                <span className="flex items-center bg-slate-100 px-3 py-2 rounded-xl">
-                  <UsersIcon className="h-4 w-4 mr-2" />
+              <div className="flex flex-wrap items-center gap-y-2 xxs:gap-y-0 gap-x-2 sm:gap-x-8 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                <span className="flex items-center bg-slate-100 dark:bg-slate-700 px-2 py-1 xs:px-3 xs:py-2 rounded-lg">
+                  <UsersIcon className="h-3 w-3 xs:h-4 xs:w-4 mr-1.5 xs:mr-2 text-slate-500 dark:text-slate-400" />
                   {groupDetails.memberCount} members
                 </span>
-                <span className="flex items-center bg-slate-100 px-3 py-2 rounded-xl">
-                  <DollarSign className="h-4 w-4 mr-2" />
+                <span className="flex items-center bg-slate-100 dark:bg-slate-700 px-2 py-1 xs:px-3 xs:py-2 rounded-lg">
+                  <DollarSign className="h-3 w-3 xs:h-4 xs:w-4 mr-1.5 xs:mr-2 text-slate-500 dark:text-slate-400" />
                   {groupDetails.expensesCount} expenses
                 </span>
-                <span className="flex items-center bg-slate-100 px-3 py-2 rounded-xl">
-                  <TrendingUp className="h-4 w-4 mr-2" />$
-                  {groupDetails.totalAmount.toFixed(2)} total
+                <span className="flex items-center bg-slate-100 dark:bg-slate-700 px-2 py-1 xs:px-3 xs:py-2 rounded-lg">
+                  <TrendingUp className="h-3 w-3 xs:h-4 xs:w-4 mr-1.5 xs:mr-2 text-slate-500 dark:text-slate-400" />
+                  ${groupDetails.totalAmount.toFixed(2)} total
                 </span>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-wrap justify-end gap-x-2 gap-y-2 mt-4 sm:mt-0">
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center px-6 py-3 text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors font-semibold"
+                className="flex items-center px-4 py-2 sm:px-6 sm:py-3 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-lg sm:rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors font-semibold text-sm"
               >
-                <Filter className="h-4 w-4 mr-2" />
+                <Filter className="h-4 w-4 mr-1.5" />
                 Filters
               </button>
               {groupDetails.creator_user_id === user?.id && (
                 <button
                   onClick={() => setShowAddMember(true)}
-                  className="flex items-center px-6 py-3 text-blue-600 bg-blue-100 rounded-xl hover:bg-blue-200 transition-colors font-semibold"
+                  className="flex items-center px-4 py-2 sm:px-6 sm:py-3 text-blue-600 dark:text-blue-300 bg-blue-100 dark:bg-blue-900 rounded-lg sm:rounded-xl hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors font-semibold text-sm"
                 >
-                  <UserPlus className="h-4 w-4 mr-2" />
+                  <UserPlus className="h-4 w-4 mr-1.5" />
                   Add Member
                 </button>
               )}
               <button
                 onClick={() => setShowAddExpense(true)}
-                className="flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5 font-semibold"
+                className="flex items-center px-4 py-2 sm:px-6 sm:py-3 bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 text-white rounded-lg sm:rounded-xl hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5 font-semibold text-sm"
               >
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="h-4 w-4 mr-1.5" />
                 Add Expense
               </button>
             </div>
@@ -1635,9 +1754,9 @@ export default function GroupEnhanced() {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 mb-8">
-          <div className="border-b border-slate-200/50">
-            <nav className="flex space-x-8 px-8">
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl xs:rounded-3xl shadow-xl xs:shadow-2xl border border-white/20 dark:border-slate-700/50 mb-6 xs:mb-8">
+          <div className="border-b border-slate-200/50 dark:border-slate-700/50">
+            <nav className="flex flex-wrap justify-center xs:justify-start gap-x-4 xxs:gap-x-6 sm:gap-x-8 px-4 xs:px-6 sm:px-8 overflow-x-auto">
               {[
                 { id: "expenses", label: "Expenses", icon: DollarSign },
                 { id: "balances", label: "Balances", icon: TrendingUp },
@@ -1647,20 +1766,20 @@ export default function GroupEnhanced() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as TabType)}
-                  className={`flex items-center py-6 px-2 border-b-4 font-semibold text-sm transition-all duration-200 ${
+                  className={`flex items-center py-4 sm:py-6 px-1 xxs:px-2 border-b-4 font-semibold text-xs xs:text-sm transition-all duration-200 whitespace-nowrap ${
                     activeTab === tab.id
-                      ? "border-blue-500 text-blue-600"
-                      : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                      ? "border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-300"
+                      : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-500"
                   }`}
                 >
-                  <tab.icon className="h-4 w-4 mr-3" />
+                  <tab.icon className="h-3 w-3 xs:h-4 xs:w-4 mr-1 xs:mr-3" />
                   {tab.label}
                 </button>
               ))}
             </nav>
           </div>
 
-          <div className="p-8">
+          <div className="p-4 sm:p-8">
             {activeTab === "expenses" && renderExpensesTab()}
             {activeTab === "balances" && renderBalancesTab()}
             {activeTab === "members" && renderMembersTab()}
@@ -1671,18 +1790,21 @@ export default function GroupEnhanced() {
 
       {/* Add Expense Modal */}
       {showAddExpense && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto border border-white/20">
-            <div className="p-8 border-b border-slate-200/50">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+        <div className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-2xl xs:rounded-3xl shadow-2xl max-w-sm xxs:max-w-full xs:max-w-md md:max-w-xl lg:max-w-2xl w-full max-h-[95vh] overflow-y-auto border border-white/20 dark:border-slate-700/50">
+            <div className="p-5 xs:p-8 border-b border-slate-200/50 dark:border-slate-700/50">
+              <h2 className="text-xl xs:text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
                 Add New Expense
               </h2>
             </div>
-            <form onSubmit={addExpense} className="p-8 space-y-6">
+            <form
+              onSubmit={addExpense}
+              className="p-5 xs:p-8 space-y-4 sm:space-y-6"
+            >
               {/* Basic Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                     Description *
                   </label>
                   <input
@@ -1694,13 +1816,13 @@ export default function GroupEnhanced() {
                         description: e.target.value,
                       }))
                     }
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 backdrop-blur-sm"
+                    className="w-full px-3 py-2 sm:px-4 sm:py-3 border-2 border-slate-200 dark:border-slate-600 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white/50 dark:bg-slate-700/50 backdrop-blur-sm text-sm text-slate-700 dark:text-slate-200"
                     placeholder="Enter expense description"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                     Amount *
                   </label>
                   <input
@@ -1714,7 +1836,7 @@ export default function GroupEnhanced() {
                         amount: e.target.value,
                       }))
                     }
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 backdrop-blur-sm"
+                    className="w-full px-3 py-2 sm:px-4 sm:py-3 border-2 border-slate-200 dark:border-slate-600 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white/50 dark:bg-slate-700/50 backdrop-blur-sm text-sm text-slate-700 dark:text-slate-200"
                     placeholder="0.00"
                     required
                   />
@@ -1722,7 +1844,7 @@ export default function GroupEnhanced() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                   Category
                 </label>
                 <select
@@ -1733,7 +1855,7 @@ export default function GroupEnhanced() {
                       category: e.target.value,
                     }))
                   }
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 backdrop-blur-sm"
+                  className="w-full px-3 py-2 sm:px-4 sm:py-3 border-2 border-slate-200 dark:border-slate-600 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white/50 dark:bg-slate-700/50 backdrop-blur-sm text-sm text-slate-700 dark:text-slate-200"
                 >
                   {EXPENSE_CATEGORIES.map((cat) => (
                     <option key={cat.value} value={cat.value}>
@@ -1745,30 +1867,33 @@ export default function GroupEnhanced() {
 
               {/* Who Paid */}
               <div>
-                <div className="flex justify-between items-center mb-4">
-                  <label className="block text-sm font-semibold text-slate-700">
+                <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center mb-3">
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 xs:mb-0">
                     Who Paid? *
                   </label>
-                  <div className="flex space-x-3">
+                  <div className="flex space-x-2">
                     <button
                       type="button"
                       onClick={() => autoDistributePayments("new")}
-                      className="text-xs px-3 py-2 bg-blue-100 text-blue-600 rounded-xl hover:bg-blue-200 transition-colors font-semibold"
+                      className="text-xs px-2.5 py-1.5 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors font-semibold"
                     >
                       Auto-distribute
                     </button>
                     <button
                       type="button"
                       onClick={() => handleAddPayment("new")}
-                      className="text-xs px-3 py-2 bg-green-100 text-green-600 rounded-xl hover:bg-green-200 transition-colors font-semibold"
+                      className="text-xs px-2.5 py-1.5 bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-800 transition-colors font-semibold"
                     >
                       Add Payer
                     </button>
                   </div>
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {newExpense.payments.map((payment, index) => (
-                    <div key={index} className="flex space-x-4">
+                    <div
+                      key={index}
+                      className="flex flex-col xxs:flex-row space-y-2 xxs:space-y-0 xxs:space-x-3 items-stretch xxs:items-center"
+                    >
                       <select
                         value={payment.userId}
                         onChange={(e) =>
@@ -1779,7 +1904,7 @@ export default function GroupEnhanced() {
                             e.target.value
                           )
                         }
-                        className="flex-1 px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 backdrop-blur-sm"
+                        className="flex-1 px-3 py-2 border-2 border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white/50 dark:bg-slate-700/50 backdrop-blur-sm text-sm text-slate-700 dark:text-slate-200"
                         required
                       >
                         <option value="">Select member</option>
@@ -1802,7 +1927,7 @@ export default function GroupEnhanced() {
                             e.target.value
                           )
                         }
-                        className="w-32 px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 backdrop-blur-sm"
+                        className="w-full xxs:w-28 px-3 py-2 border-2 border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white/50 dark:bg-slate-700/50 backdrop-blur-sm text-sm text-slate-700 dark:text-slate-200"
                         placeholder="0.00"
                         required
                       />
@@ -1810,7 +1935,7 @@ export default function GroupEnhanced() {
                         <button
                           type="button"
                           onClick={() => handleRemovePayment("new", index)}
-                          className="p-3 text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                          className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 rounded-lg transition-colors flex-shrink-0"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -1818,7 +1943,7 @@ export default function GroupEnhanced() {
                     </div>
                   ))}
                 </div>
-                <div className="mt-3 text-sm text-slate-600 font-medium">
+                <div className="mt-3 text-sm text-slate-600 dark:text-slate-400 font-medium">
                   Total paid: $
                   {calculateTotalPaid(newExpense.payments).toFixed(2)}
                   {newExpense.amount &&
@@ -1826,7 +1951,7 @@ export default function GroupEnhanced() {
                       calculateTotalPaid(newExpense.payments) -
                         Number.parseFloat(newExpense.amount)
                     ) > 0.01 && (
-                      <span className="text-red-600 ml-2 font-semibold">
+                      <span className="text-red-600 dark:text-red-400 ml-2 font-semibold text-xs">
                         (Must equal $
                         {Number.parseFloat(newExpense.amount).toFixed(2)})
                       </span>
@@ -1836,10 +1961,10 @@ export default function GroupEnhanced() {
 
               {/* Split Type */}
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-4">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
                   How to Split?
                 </label>
-                <div className="flex space-x-4 mb-6">
+                <div className="flex flex-wrap gap-2 mb-4">
                   {[
                     { value: "equal", label: "Equal Split", icon: Calculator },
                     {
@@ -1863,13 +1988,13 @@ export default function GroupEnhanced() {
                           customShares: {},
                         }))
                       }
-                      className={`flex items-center px-6 py-3 rounded-xl border-2 transition-all duration-200 font-semibold ${
+                      className={`flex items-center px-3 py-2 rounded-lg border-2 transition-all duration-200 font-semibold text-xs whitespace-nowrap ${
                         newExpense.splitType === option.value
-                          ? "bg-blue-100 border-blue-300 text-blue-700"
-                          : "bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
+                          ? "bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300"
+                          : "bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600"
                       }`}
                     >
-                      <option.icon className="h-4 w-4 mr-2" />
+                      <option.icon className="h-3 w-3 mr-1" />
                       {option.label}
                     </button>
                   ))}
@@ -1878,25 +2003,25 @@ export default function GroupEnhanced() {
 
               {/* Participants */}
               <div>
-                <div className="flex justify-between items-center mb-4">
-                  <label className="block text-sm font-semibold text-slate-700">
+                <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center mb-3">
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 xs:mb-0">
                     Participants *
                   </label>
                   {newExpense.splitType !== "equal" && (
                     <button
                       type="button"
                       onClick={() => autoDistributeShares("new")}
-                      className="text-xs px-3 py-2 bg-blue-100 text-blue-600 rounded-xl hover:bg-blue-200 transition-colors font-semibold"
+                      className="text-xs px-2.5 py-1.5 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors font-semibold"
                     >
                       Auto-distribute
                     </button>
                   )}
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {members.map((member) => (
                     <div
                       key={member.id}
-                      className="flex items-center space-x-4 p-4 bg-white/50 backdrop-blur-sm rounded-xl border border-slate-200"
+                      className="flex items-center space-x-3 p-3 bg-white/50 dark:bg-slate-700/50 backdrop-blur-sm rounded-lg border border-slate-200 dark:border-slate-600"
                     >
                       <input
                         type="checkbox"
@@ -1906,9 +2031,9 @@ export default function GroupEnhanced() {
                         onChange={() =>
                           handleParticipantToggle("new", member.id)
                         }
-                        className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-slate-300 rounded"
+                        className="h-4 w-4 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400 border-slate-300 dark:border-slate-500 rounded"
                       />
-                      <span className="flex-1 text-sm text-slate-700 font-medium">
+                      <span className="flex-1 text-sm text-slate-700 dark:text-slate-300 font-medium">
                         {member.name}
                       </span>
                       {newExpense.splitType !== "equal" &&
@@ -1925,7 +2050,7 @@ export default function GroupEnhanced() {
                                 e.target.value
                               )
                             }
-                            className="w-24 px-3 py-2 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 backdrop-blur-sm"
+                            className="w-20 px-2 py-1 border-2 border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white/50 dark:bg-slate-700/50 backdrop-blur-sm text-xs text-slate-700 dark:text-slate-200"
                             placeholder={
                               newExpense.splitType === "percentage" ? "%" : "$"
                             }
@@ -1935,7 +2060,7 @@ export default function GroupEnhanced() {
                   ))}
                 </div>
                 {newExpense.splitType !== "equal" && (
-                  <div className="mt-3 text-sm text-slate-600 font-medium">
+                  <div className="mt-3 text-sm text-slate-600 dark:text-slate-400 font-medium">
                     Total:{" "}
                     {newExpense.splitType === "custom"
                       ? `$${calculateCustomSharesTotal(
@@ -1950,7 +2075,7 @@ export default function GroupEnhanced() {
                         calculateCustomSharesTotal(newExpense.customShares) -
                           Number.parseFloat(newExpense.amount)
                       ) > 0.01 && (
-                        <span className="text-red-600 ml-2 font-semibold">
+                        <span className="text-red-600 dark:text-red-400 ml-2 font-semibold text-xs">
                           (Must equal $
                           {Number.parseFloat(newExpense.amount).toFixed(2)})
                         </span>
@@ -1960,7 +2085,7 @@ export default function GroupEnhanced() {
                         calculateCustomSharesTotal(newExpense.customShares) -
                           100
                       ) > 0.01 && (
-                        <span className="text-red-600 ml-2 font-semibold">
+                        <span className="text-red-600 dark:text-red-400 ml-2 font-semibold text-xs">
                           (Must equal 100%)
                         </span>
                       )}
@@ -1969,18 +2094,18 @@ export default function GroupEnhanced() {
               </div>
 
               {/* Actions */}
-              <div className="flex justify-end space-x-4 pt-8 border-t border-slate-200/50">
+              <div className="flex justify-end space-x-3 pt-4 border-t border-slate-200/50 dark:border-slate-700/50">
                 <button
                   type="button"
                   onClick={() => setShowAddExpense(false)}
-                  className="px-6 py-3 text-slate-700 border-2 border-slate-200 rounded-xl hover:bg-slate-50 transition-colors font-semibold"
+                  className="px-4 py-2 sm:px-6 sm:py-3 text-slate-700 dark:text-slate-300 border-2 border-slate-200 dark:border-slate-600 rounded-lg sm:rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors font-semibold text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading.addExpense}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center font-semibold"
+                  className="px-4 py-2 sm:px-6 sm:py-3 bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 text-white rounded-lg sm:rounded-xl hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center font-semibold text-sm"
                 >
                   {actionLoading.addExpense && (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -1995,39 +2120,39 @@ export default function GroupEnhanced() {
 
       {/* Add Member Modal */}
       {showAddMember && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl max-w-md w-full mx-4 border border-white/20">
-            <div className="p-8 border-b border-slate-200/50">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+        <div className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-2xl xs:rounded-3xl shadow-2xl max-w-sm xxs:max-w-full xs:max-w-md w-full mx-4 border border-white/20 dark:border-slate-700/50">
+            <div className="p-5 xs:p-8 border-b border-slate-200/50 dark:border-slate-700/50">
+              <h2 className="text-xl xs:text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
                 Add Member
               </h2>
             </div>
-            <form onSubmit={addMember} className="p-8">
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+            <form onSubmit={addMember} className="p-5 xs:p-8">
+              <div className="mb-4 sm:mb-6">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                   Email Address *
                 </label>
                 <input
                   type="email"
                   value={newMemberEmail}
                   onChange={(e) => setNewMemberEmail(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 backdrop-blur-sm"
+                  className="w-full px-3 py-2 sm:px-4 sm:py-3 border-2 border-slate-200 dark:border-slate-600 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white/50 dark:bg-slate-700/50 backdrop-blur-sm text-sm text-slate-700 dark:text-slate-200"
                   placeholder="Enter member's email"
                   required
                 />
               </div>
-              <div className="flex justify-end space-x-4">
+              <div className="flex justify-end space-x-3">
                 <button
                   type="button"
                   onClick={() => setShowAddMember(false)}
-                  className="px-6 py-3 text-slate-700 border-2 border-slate-200 rounded-xl hover:bg-slate-50 transition-colors font-semibold"
+                  className="px-4 py-2 sm:px-6 sm:py-3 text-slate-700 dark:text-slate-300 border-2 border-slate-200 dark:border-slate-600 rounded-lg sm:rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors font-semibold text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading.addMember}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center font-semibold"
+                  className="px-4 py-2 sm:px-6 sm:py-3 bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 text-white rounded-lg sm:rounded-xl hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center font-semibold text-sm"
                 >
                   {actionLoading.addMember && (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -2042,18 +2167,21 @@ export default function GroupEnhanced() {
 
       {/* Edit Expense Modal */}
       {showEditExpense && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto border border-white/20">
-            <div className="p-8 border-b border-slate-200/50">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+        <div className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-2xl xs:rounded-3xl shadow-2xl max-w-sm xxs:max-w-full xs:max-w-md md:max-w-xl lg:max-w-2xl w-full max-h-[95vh] overflow-y-auto border border-white/20 dark:border-slate-700/50">
+            <div className="p-5 xs:p-8 border-b border-slate-200/50 dark:border-slate-700/50">
+              <h2 className="text-xl xs:text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
                 Edit Expense
               </h2>
             </div>
-            <form onSubmit={editExpenseHandler} className="p-8 space-y-6">
+            <form
+              onSubmit={editExpenseHandler}
+              className="p-5 xs:p-8 space-y-4 sm:space-y-6"
+            >
               {/* Basic Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                     Description *
                   </label>
                   <input
@@ -2065,13 +2193,13 @@ export default function GroupEnhanced() {
                         description: e.target.value,
                       }))
                     }
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 backdrop-blur-sm"
+                    className="w-full px-3 py-2 sm:px-4 sm:py-3 border-2 border-slate-200 dark:border-slate-600 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white/50 dark:bg-slate-700/50 backdrop-blur-sm text-sm text-slate-700 dark:text-slate-200"
                     placeholder="Enter expense description"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                     Amount *
                   </label>
                   <input
@@ -2085,7 +2213,7 @@ export default function GroupEnhanced() {
                         amount: e.target.value,
                       }))
                     }
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 backdrop-blur-sm"
+                    className="w-full px-3 py-2 sm:px-4 sm:py-3 border-2 border-slate-200 dark:border-slate-600 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white/50 dark:bg-slate-700/50 backdrop-blur-sm text-sm text-slate-700 dark:text-slate-200"
                     placeholder="0.00"
                     required
                   />
@@ -2093,7 +2221,7 @@ export default function GroupEnhanced() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                   Category
                 </label>
                 <select
@@ -2104,7 +2232,7 @@ export default function GroupEnhanced() {
                       category: e.target.value,
                     }))
                   }
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 backdrop-blur-sm"
+                  className="w-full px-3 py-2 sm:px-4 sm:py-3 border-2 border-slate-200 dark:border-slate-600 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white/50 dark:bg-slate-700/50 backdrop-blur-sm text-sm text-slate-700 dark:text-slate-200"
                 >
                   {EXPENSE_CATEGORIES.map((cat) => (
                     <option key={cat.value} value={cat.value}>
@@ -2116,30 +2244,33 @@ export default function GroupEnhanced() {
 
               {/* Who Paid */}
               <div>
-                <div className="flex justify-between items-center mb-4">
-                  <label className="block text-sm font-semibold text-slate-700">
+                <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center mb-3">
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 xs:mb-0">
                     Who Paid? *
                   </label>
-                  <div className="flex space-x-3">
+                  <div className="flex space-x-2">
                     <button
                       type="button"
                       onClick={() => autoDistributePayments("edit")}
-                      className="text-xs px-3 py-2 bg-blue-100 text-blue-600 rounded-xl hover:bg-blue-200 transition-colors font-semibold"
+                      className="text-xs px-2.5 py-1.5 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors font-semibold"
                     >
                       Auto-distribute
                     </button>
                     <button
                       type="button"
                       onClick={() => handleAddPayment("edit")}
-                      className="text-xs px-3 py-2 bg-green-100 text-green-600 rounded-xl hover:bg-green-200 transition-colors font-semibold"
+                      className="text-xs px-2.5 py-1.5 bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-800 transition-colors font-semibold"
                     >
                       Add Payer
                     </button>
                   </div>
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {editExpense.payments.map((payment, index) => (
-                    <div key={index} className="flex space-x-4">
+                    <div
+                      key={index}
+                      className="flex flex-col xxs:flex-row space-y-2 xxs:space-y-0 xxs:space-x-3 items-stretch xxs:items-center"
+                    >
                       <select
                         value={payment.userId}
                         onChange={(e) =>
@@ -2150,7 +2281,7 @@ export default function GroupEnhanced() {
                             e.target.value
                           )
                         }
-                        className="flex-1 px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 backdrop-blur-sm"
+                        className="flex-1 px-3 py-2 border-2 border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white/50 dark:bg-slate-700/50 backdrop-blur-sm text-sm text-slate-700 dark:text-slate-200"
                         required
                       >
                         <option value="">Select member</option>
@@ -2173,7 +2304,7 @@ export default function GroupEnhanced() {
                             e.target.value
                           )
                         }
-                        className="w-32 px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 backdrop-blur-sm"
+                        className="w-full xxs:w-28 px-3 py-2 border-2 border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white/50 dark:bg-slate-700/50 backdrop-blur-sm text-sm text-slate-700 dark:text-slate-200"
                         placeholder="0.00"
                         required
                       />
@@ -2181,7 +2312,7 @@ export default function GroupEnhanced() {
                         <button
                           type="button"
                           onClick={() => handleRemovePayment("edit", index)}
-                          className="p-3 text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                          className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 rounded-lg transition-colors flex-shrink-0"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -2189,7 +2320,7 @@ export default function GroupEnhanced() {
                     </div>
                   ))}
                 </div>
-                <div className="mt-3 text-sm text-slate-600 font-medium">
+                <div className="mt-3 text-sm text-slate-600 dark:text-slate-400 font-medium">
                   Total paid: $
                   {calculateTotalPaid(editExpense.payments).toFixed(2)}
                   {editExpense.amount &&
@@ -2197,7 +2328,7 @@ export default function GroupEnhanced() {
                       calculateTotalPaid(editExpense.payments) -
                         Number.parseFloat(editExpense.amount)
                     ) > 0.01 && (
-                      <span className="text-red-600 ml-2 font-semibold">
+                      <span className="text-red-600 dark:text-red-400 ml-2 font-semibold text-xs">
                         (Must equal $
                         {Number.parseFloat(editExpense.amount).toFixed(2)})
                       </span>
@@ -2207,10 +2338,10 @@ export default function GroupEnhanced() {
 
               {/* Split Type */}
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-4">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
                   How to Split?
                 </label>
-                <div className="flex space-x-4 mb-6">
+                <div className="flex flex-wrap gap-2 mb-4">
                   {[
                     { value: "equal", label: "Equal Split", icon: Calculator },
                     {
@@ -2234,13 +2365,13 @@ export default function GroupEnhanced() {
                           customShares: {},
                         }))
                       }
-                      className={`flex items-center px-6 py-3 rounded-xl border-2 transition-all duration-200 font-semibold ${
+                      className={`flex items-center px-3 py-2 rounded-lg border-2 transition-all duration-200 font-semibold text-xs whitespace-nowrap ${
                         editExpense.splitType === option.value
-                          ? "bg-blue-100 border-blue-300 text-blue-700"
-                          : "bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
+                          ? "bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300"
+                          : "bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600"
                       }`}
                     >
-                      <option.icon className="h-4 w-4 mr-2" />
+                      <option.icon className="h-3 w-3 mr-1" />
                       {option.label}
                     </button>
                   ))}
@@ -2249,25 +2380,25 @@ export default function GroupEnhanced() {
 
               {/* Participants */}
               <div>
-                <div className="flex justify-between items-center mb-4">
-                  <label className="block text-sm font-semibold text-slate-700">
+                <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center mb-3">
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 xs:mb-0">
                     Participants *
                   </label>
                   {editExpense.splitType !== "equal" && (
                     <button
                       type="button"
                       onClick={() => autoDistributeShares("edit")}
-                      className="text-xs px-3 py-2 bg-blue-100 text-blue-600 rounded-xl hover:bg-blue-200 transition-colors font-semibold"
+                      className="text-xs px-2.5 py-1.5 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors font-semibold"
                     >
                       Auto-distribute
                     </button>
                   )}
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {members.map((member) => (
                     <div
                       key={member.id}
-                      className="flex items-center space-x-4 p-4 bg-white/50 backdrop-blur-sm rounded-xl border border-slate-200"
+                      className="flex items-center space-x-3 p-3 bg-white/50 dark:bg-slate-700/50 backdrop-blur-sm rounded-lg border border-slate-200 dark:border-slate-600"
                     >
                       <input
                         type="checkbox"
@@ -2277,9 +2408,9 @@ export default function GroupEnhanced() {
                         onChange={() =>
                           handleParticipantToggle("edit", member.id)
                         }
-                        className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-slate-300 rounded"
+                        className="h-4 w-4 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400 border-slate-300 dark:border-slate-500 rounded"
                       />
-                      <span className="flex-1 text-sm text-slate-700 font-medium">
+                      <span className="flex-1 text-sm text-slate-700 dark:text-slate-300 font-medium">
                         {member.name}
                       </span>
                       {editExpense.splitType !== "equal" &&
@@ -2296,7 +2427,7 @@ export default function GroupEnhanced() {
                                 e.target.value
                               )
                             }
-                            className="w-24 px-3 py-2 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 backdrop-blur-sm"
+                            className="w-20 px-2 py-1 border-2 border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white/50 dark:bg-slate-700/50 backdrop-blur-sm text-xs text-slate-700 dark:text-slate-200"
                             placeholder={
                               editExpense.splitType === "percentage" ? "%" : "$"
                             }
@@ -2306,7 +2437,7 @@ export default function GroupEnhanced() {
                   ))}
                 </div>
                 {editExpense.splitType !== "equal" && (
-                  <div className="mt-3 text-sm text-slate-600 font-medium">
+                  <div className="mt-3 text-sm text-slate-600 dark:text-slate-400 font-medium">
                     Total:{" "}
                     {editExpense.splitType === "custom"
                       ? `$${calculateCustomSharesTotal(
@@ -2321,7 +2452,7 @@ export default function GroupEnhanced() {
                         calculateCustomSharesTotal(editExpense.customShares) -
                           Number.parseFloat(editExpense.amount)
                       ) > 0.01 && (
-                        <span className="text-red-600 ml-2 font-semibold">
+                        <span className="text-red-600 dark:text-red-400 ml-2 font-semibold text-xs">
                           (Must equal $
                           {Number.parseFloat(editExpense.amount).toFixed(2)})
                         </span>
@@ -2331,7 +2462,7 @@ export default function GroupEnhanced() {
                         calculateCustomSharesTotal(editExpense.customShares) -
                           100
                       ) > 0.01 && (
-                        <span className="text-red-600 ml-2 font-semibold">
+                        <span className="text-red-600 dark:text-red-400 ml-2 font-semibold text-xs">
                           (Must equal 100%)
                         </span>
                       )}
@@ -2340,18 +2471,18 @@ export default function GroupEnhanced() {
               </div>
 
               {/* Actions */}
-              <div className="flex justify-end space-x-4 pt-8 border-t border-slate-200/50">
+              <div className="flex justify-end space-x-3 pt-4 border-t border-slate-200/50 dark:border-slate-700/50">
                 <button
                   type="button"
                   onClick={() => setShowEditExpense(false)}
-                  className="px-6 py-3 text-slate-700 border-2 border-slate-200 rounded-xl hover:bg-slate-50 transition-colors font-semibold"
+                  className="px-4 py-2 sm:px-6 sm:py-3 text-slate-700 dark:text-slate-300 border-2 border-slate-200 dark:border-slate-600 rounded-lg sm:rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors font-semibold text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading.editExpense}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center font-semibold"
+                  className="px-4 py-2 sm:px-6 sm:py-3 bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 text-white rounded-lg sm:rounded-xl hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center font-semibold text-sm"
                 >
                   {actionLoading.editExpense && (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -2366,24 +2497,27 @@ export default function GroupEnhanced() {
 
       {/* Redistribute Expense Modal */}
       {showRedistributeExpense && selectedExpense && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto border border-white/20">
-            <div className="p-8 border-b border-slate-200/50">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+        <div className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-2xl xs:rounded-3xl shadow-2xl max-w-sm xxs:max-w-full xs:max-w-md w-full mx-4 max-h-[95vh] overflow-y-auto border border-white/20 dark:border-slate-700/50">
+            <div className="p-5 xs:p-8 border-b border-slate-200/50 dark:border-slate-700/50">
+              <h2 className="text-xl xs:text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
                 Redistribute Expense
               </h2>
-              <p className="text-slate-600 text-sm mt-2">
+              <p className="text-slate-600 dark:text-slate-400 text-sm mt-1.5">
                 "{selectedExpense.description}" - $
                 {selectedExpense.amount.toFixed(2)}
               </p>
             </div>
-            <form onSubmit={redistributeExpense} className="p-8 space-y-6">
+            <form
+              onSubmit={redistributeExpense}
+              className="p-5 xs:p-8 space-y-4 sm:space-y-6"
+            >
               {/* Split Type for Redistribution */}
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-4">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
                   How to Redistribute?
                 </label>
-                <div className="flex space-x-4 mb-6">
+                <div className="flex flex-wrap gap-2 mb-4">
                   {[
                     { value: "equal", label: "Equal Split", icon: Calculator },
                     {
@@ -2407,10 +2541,10 @@ export default function GroupEnhanced() {
                           customShares: {},
                         }))
                       }
-                      className={`flex items-center px-4 py-2 rounded-xl border-2 transition-all duration-200 font-semibold text-xs ${
+                      className={`flex items-center px-3 py-2 rounded-lg border-2 transition-all duration-200 font-semibold text-xs whitespace-nowrap ${
                         redistributeForm.splitType === option.value
-                          ? "bg-blue-100 border-blue-300 text-blue-700"
-                          : "bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
+                          ? "bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300"
+                          : "bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600"
                       }`}
                     >
                       <option.icon className="h-3 w-3 mr-1" />
@@ -2422,15 +2556,15 @@ export default function GroupEnhanced() {
 
               {/* Participants for Redistribution */}
               <div>
-                <div className="flex justify-between items-center mb-4">
-                  <label className="block text-sm font-semibold text-slate-700">
+                <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center mb-3">
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 xs:mb-0">
                     Participants *
                   </label>
                   {redistributeForm.splitType !== "equal" && (
                     <button
                       type="button"
                       onClick={() => autoDistributeShares("redistribute")}
-                      className="text-xs px-3 py-2 bg-blue-100 text-blue-600 rounded-xl hover:bg-blue-200 transition-colors font-semibold"
+                      className="text-xs px-2.5 py-1.5 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors font-semibold"
                     >
                       Auto-distribute
                     </button>
@@ -2440,7 +2574,7 @@ export default function GroupEnhanced() {
                   {members.map((member) => (
                     <div
                       key={member.id}
-                      className="flex items-center space-x-3 p-3 bg-white/50 backdrop-blur-sm rounded-xl border border-slate-200"
+                      className="flex items-center space-x-3 p-3 bg-white/50 dark:bg-slate-700/50 backdrop-blur-sm rounded-lg border border-slate-200 dark:border-slate-600"
                     >
                       <input
                         type="checkbox"
@@ -2450,9 +2584,9 @@ export default function GroupEnhanced() {
                         onChange={() =>
                           handleParticipantToggle("redistribute", member.id)
                         }
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 rounded"
+                        className="h-4 w-4 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400 border-slate-300 dark:border-slate-500 rounded"
                       />
-                      <span className="flex-1 text-sm text-slate-700 font-medium">
+                      <span className="flex-1 text-sm text-slate-700 dark:text-slate-300 font-medium">
                         {member.name}
                       </span>
                       {redistributeForm.splitType !== "equal" &&
@@ -2473,7 +2607,7 @@ export default function GroupEnhanced() {
                                 e.target.value
                               )
                             }
-                            className="w-20 px-2 py-1 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 backdrop-blur-sm text-xs"
+                            className="w-20 px-2 py-1 border-2 border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white/50 dark:bg-slate-700/50 backdrop-blur-sm text-xs text-slate-700 dark:text-slate-200"
                             placeholder={
                               redistributeForm.splitType === "percentage"
                                 ? "%"
@@ -2485,7 +2619,7 @@ export default function GroupEnhanced() {
                   ))}
                 </div>
                 {redistributeForm.splitType !== "equal" && (
-                  <div className="mt-3 text-sm text-slate-600 font-medium">
+                  <div className="mt-3 text-sm text-slate-600 dark:text-slate-400 font-medium">
                     Total:{" "}
                     {redistributeForm.splitType === "custom"
                       ? `$${calculateCustomSharesTotal(
@@ -2501,7 +2635,7 @@ export default function GroupEnhanced() {
                           redistributeForm.customShares
                         ) - selectedExpense.amount
                       ) > 0.01 && (
-                        <span className="text-red-600 ml-2 font-semibold">
+                        <span className="text-red-600 dark:text-red-400 ml-2 font-semibold text-xs">
                           (Must equal ${selectedExpense.amount.toFixed(2)})
                         </span>
                       )}
@@ -2511,7 +2645,7 @@ export default function GroupEnhanced() {
                           redistributeForm.customShares
                         ) - 100
                       ) > 0.01 && (
-                        <span className="text-red-600 ml-2 font-semibold">
+                        <span className="text-red-600 dark:text-red-400 ml-2 font-semibold text-xs">
                           (Must equal 100%)
                         </span>
                       )}
@@ -2520,18 +2654,18 @@ export default function GroupEnhanced() {
               </div>
 
               {/* Actions */}
-              <div className="flex justify-end space-x-4 pt-6 border-t border-slate-200/50">
+              <div className="flex justify-end space-x-3 pt-4 border-t border-slate-200/50 dark:border-slate-700/50">
                 <button
                   type="button"
                   onClick={() => setShowRedistributeExpense(false)}
-                  className="px-6 py-3 text-slate-700 border-2 border-slate-200 rounded-xl hover:bg-slate-50 transition-colors font-semibold"
+                  className="px-4 py-2 sm:px-6 sm:py-3 text-slate-700 dark:text-slate-300 border-2 border-slate-200 dark:border-slate-600 rounded-lg sm:rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors font-semibold text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading.redistributeExpense}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center font-semibold"
+                  className="px-4 py-2 sm:px-6 sm:py-3 bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 text-white rounded-lg sm:rounded-xl hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center font-semibold text-sm"
                 >
                   {actionLoading.redistributeExpense && (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
