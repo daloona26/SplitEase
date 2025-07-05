@@ -57,8 +57,8 @@ function calculateShares(
         share_amount: baseShareAmount,
         share_percentage: baseSharePercentage,
       });
-    } // Distribute remainder for share_amount to ensure sum equals totalAmount
-
+    }
+    // Distribute remainder for share_amount to ensure sum equals totalAmount
     let currentSumAmounts = calculatedShares.reduce(
       (sum, s) => sum + s.share_amount,
       0
@@ -84,8 +84,8 @@ function calculateShares(
           diffAmount = 0; // Remainder handled
         }
       }
-    } // Re-calculate percentages based on final adjusted amounts for precision
-
+    }
+    // Re-calculate percentages based on final adjusted amounts for precision
     if (parsedTotalAmount > 0) {
       calculatedShares = calculatedShares.map((share) => ({
         ...share,
@@ -99,8 +99,8 @@ function calculateShares(
         ...share,
         share_percentage: 0,
       }));
-    } // Distribute remainder for share_percentage to ensure sum equals 100%
-
+    }
+    // Distribute remainder for share_percentage to ensure sum equals 100%
     let currentSumPercentages = calculatedShares.reduce(
       (sum, s) => sum + s.share_percentage,
       0
@@ -131,7 +131,8 @@ function calculateShares(
     }
   } else if (splitType === "custom" && customShares) {
     const totalCustomAmount = Object.values(customShares).reduce(
-      (sum, amount) => sum + Number.parseFloat(amount.toString() || "0"),
+      (sum, amount) =>
+        sum + roundToTwoDecimals(Number.parseFloat(amount || "0")),
       0
     );
     if (
@@ -141,7 +142,7 @@ function calculateShares(
     }
     calculatedShares = participants.map((userId) => {
       const shareAmount = roundToTwoDecimals(
-        Number.parseFloat(customShares[userId] || 0)
+        Number.parseFloat(customShares[userId] || "0") // Ensure customShares[userId] is safely parsed
       );
       const sharePercentage =
         parsedTotalAmount > 0
@@ -156,7 +157,7 @@ function calculateShares(
   } else if (splitType === "percentage" && customShares) {
     const totalPercentage = Object.values(customShares).reduce(
       (sum, percentage) =>
-        sum + Number.parseFloat(percentage.toString() || "0"),
+        sum + roundToTwoDecimals(Number.parseFloat(percentage || "0")), // Ensure customShares[userId] is safely parsed
       0
     );
     if (Math.abs(roundToTwoDecimals(totalPercentage) - 100) > 0.01) {
@@ -164,7 +165,7 @@ function calculateShares(
     }
     calculatedShares = participants.map((userId) => {
       const sharePercentage = roundToTwoDecimals(
-        Number.parseFloat(customShares[userId] || 0)
+        Number.parseFloat(customShares[userId] || "0") // Ensure customShares[userId] is safely parsed
       );
       const shareAmount = roundToTwoDecimals(
         (parsedTotalAmount * sharePercentage) / 100
@@ -198,8 +199,9 @@ router.post("/", authenticateToken, checkSubscription, async (req, res) => {
     splitType = "equal",
     customShares = null,
   } = req.body;
-  const currentUserId = req.user.id; // Basic validation (already exists, but important)
+  const currentUserId = req.user.id;
 
+  // Basic validation (already exists, but important)
   if (
     !groupId ||
     !description ||
@@ -220,8 +222,9 @@ router.post("/", authenticateToken, checkSubscription, async (req, res) => {
 
   const client = await pool.connect();
   try {
-    await client.query("BEGIN"); // Authorization: User must be a member of the group
+    await client.query("BEGIN");
 
+    // Authorization: User must be a member of the group
     const isMember = await client.query(
       "SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2",
       [groupId, currentUserId]
@@ -236,7 +239,7 @@ router.post("/", authenticateToken, checkSubscription, async (req, res) => {
     let totalPaidAmount = 0;
     for (const payment of payments) {
       const parsedAmount = roundToTwoDecimals(
-        Number.parseFloat(payment.amountPaid)
+        Number.parseFloat(payment.amountPaid || "0") // Safely parse amountPaid
       );
       if (isNaN(parsedAmount) || parsedAmount < 0) {
         await client.query("ROLLBACK");
@@ -266,8 +269,9 @@ router.post("/", authenticateToken, checkSubscription, async (req, res) => {
           totalPaidAmount
         )}) must equal the expense amount ($${expenseAmount}).`,
       });
-    } // Validate all participants are members of the group
+    }
 
+    // Validate all participants are members of the group
     for (const participantId of participants) {
       const isParticipantMember = await client.query(
         "SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2",
@@ -279,21 +283,24 @@ router.post("/", authenticateToken, checkSubscription, async (req, res) => {
           .status(400)
           .json({ message: "All participants must be members of the group." });
       }
-    } // Calculate shares using the robust function
+    }
 
+    // Calculate shares using the robust function
     const calculatedParticipants = calculateShares(
       expenseAmount, // Use the parsed and rounded expense amount
       participants,
       splitType,
       customShares
-    ); // Insert expense
+    );
 
+    // Insert expense
     const newExpenseResult = await client.query(
       "INSERT INTO expenses (group_id, description, amount, category) VALUES ($1, $2, $3, $4) RETURNING id, description, amount, category, expense_date",
       [groupId, description, expenseAmount, category || "general"]
     );
-    const newExpense = newExpenseResult.rows[0]; // Insert participants (using rounded calculated shares)
+    const newExpense = newExpenseResult.rows[0];
 
+    // Insert participants (using rounded calculated shares)
     for (const participant of calculatedParticipants) {
       await client.query(
         "INSERT INTO expense_participants (expense_id, user_id, share_amount, share_percentage) VALUES ($1, $2, $3, $4)",
@@ -304,34 +311,36 @@ router.post("/", authenticateToken, checkSubscription, async (req, res) => {
           roundToTwoDecimals(participant.share_percentage),
         ]
       );
-    } // Insert payments (using rounded amounts)
+    }
 
+    // Insert payments (using rounded amounts)
     for (const payment of payments) {
       await client.query(
         "INSERT INTO expense_payments (expense_id, user_id, amount_paid) VALUES ($1, $2, $3)",
         [
           newExpense.id,
           payment.userId,
-          roundToTwoDecimals(Number.parseFloat(payment.amountPaid)),
+          roundToTwoDecimals(Number.parseFloat(payment.amountPaid || "0")), // Safely parse amountPaid
         ]
       );
     }
 
-    await client.query("COMMIT"); // Fetch and return full expense details
+    await client.query("COMMIT");
 
+    // Fetch and return full expense details
     const payerDetails = await client.query(
-      `SELECT DISTINCT u.id as user_id, u.name, epay.amount_paid 
-         FROM expense_payments epay 
-         JOIN users u ON epay.user_id = u.id 
-         WHERE epay.expense_id = $1`,
+      `SELECT DISTINCT u.id as user_id, u.name, epay.amount_paid
+           FROM expense_payments epay
+           JOIN users u ON epay.user_id = u.id
+           WHERE epay.expense_id = $1`,
       [newExpense.id]
-    ); // Fetch and return participant details for the response
-
+    );
+    // Fetch and return participant details for the response
     const participantDetails = await client.query(
       `SELECT ep.user_id, u.name, ep.share_amount, ep.share_percentage
-       FROM expense_participants ep
-       JOIN users u ON ep.user_id = u.id
-       WHERE ep.expense_id = $1`,
+       FROM expense_participants ep
+       JOIN users u ON ep.user_id = u.id
+       WHERE ep.expense_id = $1`,
       [newExpense.id]
     );
 
@@ -382,12 +391,15 @@ router.get("/:groupId/expenses", authenticateToken, async (req, res) => {
       return res
         .status(403)
         .json({ message: "Not authorized to view expenses for this group." });
-    } // Build base query for expenses (filters logic removed for brevity, assume it's there) // ... your existing filter logic (category, startDate, endDate, search) ...
+    }
+    // Build base query for expenses (filters logic removed for brevity, assume it's there)
+    // ... your existing filter logic (category, startDate, endDate, search) ...
 
     let expensesQuery = `SELECT id, description, amount, category, expense_date FROM expenses WHERE group_id = $1`;
     const queryParams = [groupId];
-    let paramIndex = 2; // Start from 2 for additional params // Re-add filters here (from your existing code)
+    let paramIndex = 2; // Start from 2 for additional params
 
+    // Re-add filters here (from your existing code)
     const { category, startDate, endDate, search } = req.query;
     if (category && category !== "all") {
       expensesQuery += ` AND category = $${paramIndex++}`;
@@ -407,25 +419,27 @@ router.get("/:groupId/expenses", authenticateToken, async (req, res) => {
     }
     expensesQuery += ` ORDER BY expense_date DESC`;
 
-    const expensesResult = await query(expensesQuery, queryParams); // For each expense, get payments and participants separately
+    const expensesResult = await query(expensesQuery, queryParams);
+    // For each expense, get payments and participants separately
 
     const expenses = await Promise.all(
       expensesResult.rows.map(async (expense) => {
         try {
           // Get payments for this expense
           const paymentsResult = await query(
-            `SELECT ep.user_id, u.name, ep.amount_paid 
-              FROM expense_payments ep 
-              JOIN users u ON ep.user_id = u.id 
-              WHERE ep.expense_id = $1`,
+            `SELECT ep.user_id, u.name, ep.amount_paid
+             FROM expense_payments ep
+             JOIN users u ON ep.user_id = u.id
+             WHERE ep.expense_id = $1`,
             [expense.id]
-          ); // Get participants for this expense
+          );
+          // Get participants for this expense
 
           const participantsResult = await query(
-            `SELECT ep.user_id, u.name, ep.share_amount, ep.share_percentage 
-              FROM expense_participants ep 
-              JOIN users u ON ep.user_id = u.id 
-              WHERE ep.expense_id = $1`,
+            `SELECT ep.user_id, u.name, ep.share_amount, ep.share_percentage
+             FROM expense_participants ep
+             JOIN users u ON ep.user_id = u.id
+             WHERE ep.expense_id = $1`,
             [expense.id]
           );
 
@@ -467,13 +481,13 @@ router.get("/:groupId/expenses", authenticateToken, async (req, res) => {
     try {
       // Get stats
       const statsResult = await query(
-        `SELECT 
-          COUNT(id) AS total_count, 
-          COALESCE(SUM(amount), 0) AS total_amount, 
-          COALESCE(AVG(amount), 0) AS average_amount, 
-          COUNT(DISTINCT category) AS categories_count 
-          FROM expenses 
-          WHERE group_id = $1`,
+        `SELECT
+           COUNT(id) AS total_count,
+           COALESCE(SUM(amount), 0) AS total_amount,
+           COALESCE(AVG(amount), 0) AS average_amount,
+           COUNT(DISTINCT category) AS categories_count
+           FROM expenses
+           WHERE group_id = $1`,
         [groupId]
       );
       stats = statsResult.rows[0];
@@ -491,15 +505,15 @@ router.get("/:groupId/expenses", authenticateToken, async (req, res) => {
     try {
       // Get categories
       const categoriesResult = await query(
-        `SELECT 
-          category, 
-          COUNT(id) AS expenses_count, 
-          COALESCE(SUM(amount), 0) AS total_amount, 
-          COALESCE(AVG(amount), 0) AS average_amount 
-          FROM expenses 
-          WHERE group_id = $1 
-          GROUP BY category 
-          ORDER BY category ASC`,
+        `SELECT
+           category,
+           COUNT(id) AS expenses_count,
+           COALESCE(SUM(amount), 0) AS total_amount,
+           COALESCE(AVG(amount), 0) AS average_amount
+           FROM expenses
+           WHERE group_id = $1
+           GROUP BY category
+           ORDER BY category ASC`,
         [groupId]
       );
       categories = categoriesResult.rows.map((cat) => ({
@@ -543,9 +557,9 @@ router.get("/:expenseId", authenticateToken, async (req, res) => {
   try {
     // Get basic expense info
     const expenseResult = await query(
-      `SELECT id, description, amount, category, group_id, expense_date 
-         FROM expenses 
-         WHERE id = $1`,
+      `SELECT id, description, amount, category, group_id, expense_date
+           FROM expenses
+           WHERE id = $1`,
       [expenseId]
     );
 
@@ -553,7 +567,8 @@ router.get("/:expenseId", authenticateToken, async (req, res) => {
       return res.status(404).json({ message: "Expense not found." });
     }
 
-    const expense = expenseResult.rows[0]; // Check if user is member of the group
+    const expense = expenseResult.rows[0];
+    // Check if user is member of the group
 
     const isMember = await query(
       "SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2",
@@ -563,21 +578,23 @@ router.get("/:expenseId", authenticateToken, async (req, res) => {
       return res
         .status(403)
         .json({ message: "Not authorized to view this expense." });
-    } // Get payments
+    }
+    // Get payments
 
     const paymentsResult = await query(
-      `SELECT ep.user_id, u.name, ep.amount_paid 
-         FROM expense_payments ep 
-         JOIN users u ON ep.user_id = u.id 
-         WHERE ep.expense_id = $1`,
+      `SELECT ep.user_id, u.name, ep.amount_paid
+           FROM expense_payments ep
+           JOIN users u ON ep.user_id = u.id
+           WHERE ep.expense_id = $1`,
       [expenseId]
-    ); // Get participants
+    );
+    // Get participants
 
     const participantsResult = await query(
-      `SELECT ep.user_id, u.name, ep.share_amount, ep.share_percentage 
-         FROM expense_participants ep 
-         JOIN users u ON ep.user_id = u.id 
-         WHERE ep.expense_id = $1`,
+      `SELECT ep.user_id, u.name, ep.share_amount, ep.share_percentage
+           FROM expense_participants ep
+           JOIN users u ON ep.user_id = u.id
+           WHERE ep.expense_id = $1`,
       [expenseId]
     );
 
@@ -623,15 +640,16 @@ router.get("/:groupId/balances", authenticateToken, async (req, res) => {
       return res
         .status(403)
         .json({ message: "Not authorized to view balances for this group." });
-    } // Fetch all members of the group to initialize balances
+    }
+    // Fetch all members of the group to initialize balances
 
     let membersResult;
     try {
       membersResult = await query(
         `SELECT u.id AS user_id, u.name, u.email
-         FROM group_members gm
-         JOIN users u ON gm.user_id = u.id
-         WHERE gm.group_id = $1`,
+           FROM group_members gm
+           JOIN users u ON gm.user_id = u.id
+           WHERE gm.group_id = $1`,
         [groupId]
       );
     } catch (dbError) {
@@ -655,15 +673,16 @@ router.get("/:groupId/balances", authenticateToken, async (req, res) => {
       balance: 0,
     }));
 
-    const balanceMap = new Map(balances.map((b) => [b.user_id, b])); // Get all payments made in this group
+    const balanceMap = new Map(balances.map((b) => [b.user_id, b]));
+    // Get all payments made in this group
 
     let paymentsResult;
     try {
       paymentsResult = await query(
         `SELECT ep.user_id, ep.amount_paid
-         FROM expense_payments ep
-         JOIN expenses e ON ep.expense_id = e.id
-         WHERE e.group_id = $1`,
+           FROM expense_payments ep
+           JOIN expenses e ON ep.expense_id = e.id
+           WHERE e.group_id = $1`,
         [groupId]
       );
     } catch (dbError) {
@@ -676,7 +695,8 @@ router.get("/:groupId/balances", authenticateToken, async (req, res) => {
         error:
           process.env.NODE_ENV === "development" ? dbError.message : undefined,
       });
-    } // Aggregate total paid amounts
+    }
+    // Aggregate total paid amounts
 
     paymentsResult.rows.forEach((payment) => {
       if (balanceMap.has(payment.user_id)) {
@@ -685,15 +705,16 @@ router.get("/:groupId/balances", authenticateToken, async (req, res) => {
             Number.parseFloat(payment.amount_paid)
         );
       }
-    }); // Get all shares owed by participants in this group
+    });
+    // Get all shares owed by participants in this group
 
     let sharesResult;
     try {
       sharesResult = await query(
         `SELECT ep.user_id, ep.share_amount
-         FROM expense_participants ep
-         JOIN expenses e ON ep.expense_id = e.id
-         WHERE e.group_id = $1`,
+           FROM expense_participants ep
+           JOIN expenses e ON ep.expense_id = e.id
+           WHERE e.group_id = $1`,
         [groupId]
       );
     } catch (dbError) {
@@ -706,7 +727,8 @@ router.get("/:groupId/balances", authenticateToken, async (req, res) => {
         error:
           process.env.NODE_ENV === "development" ? dbError.message : undefined,
       });
-    } // Aggregate total owed amounts
+    }
+    // Aggregate total owed amounts
 
     sharesResult.rows.forEach((share) => {
       if (balanceMap.has(share.user_id)) {
@@ -715,7 +737,8 @@ router.get("/:groupId/balances", authenticateToken, async (req, res) => {
             Number.parseFloat(share.share_amount)
         );
       }
-    }); // Calculate final balance for each member
+    });
+    // Calculate final balance for each member
 
     balances = Array.from(balanceMap.values()).map((b) => ({
       ...b,
@@ -843,12 +866,13 @@ router.put(
           message:
             "Only the group creator or an original payer can update this expense.",
         });
-      } // Validate payments total - this is client-side validation logic that throws a normal Error
+      }
+      // Validate payments total - this is client-side validation logic that throws a normal Error
 
       let totalPaidAmount = 0;
       for (const payment of payments) {
         totalPaidAmount += roundToTwoDecimals(
-          Number.parseFloat(payment.amountPaid)
+          Number.parseFloat(payment.amountPaid || "0") // Safely parse amountPaid
         );
       }
 
@@ -951,7 +975,7 @@ router.put(
             [
               expenseId,
               payment.userId,
-              roundToTwoDecimals(Number.parseFloat(payment.amountPaid)),
+              roundToTwoDecimals(Number.parseFloat(payment.amountPaid || "0")), // Safely parse amountPaid
             ]
           );
         }
@@ -1065,7 +1089,8 @@ router.delete("/:expenseId", authenticateToken, async (req, res) => {
       return res.status(404).json({ message: "Expense not found." });
     }
 
-    const groupId = expense.group_id; // Get group ID from expense // Authorization: Creator of the group OR original payer
+    const groupId = expense.group_id; // Get group ID from expense
+    // Authorization: Creator of the group OR original payer
 
     const isCreator = await isCreatorOfGroup(userId, groupId);
     const isOriginalPayer = await client.query(
@@ -1134,7 +1159,8 @@ router.put(
         return res.status(404).json({ message: "Expense not found." });
       }
 
-      const groupId = expense.group_id; // Get group ID from expense // Authorization: Creator of the group OR original payer
+      const groupId = expense.group_id; // Get group ID from expense
+      // Authorization: Creator of the group OR original payer
 
       const isCreator = await isCreatorOfGroup(currentUserId, groupId);
       const isOriginalPayer = await client.query(
@@ -1155,7 +1181,8 @@ router.put(
         participants,
         splitType,
         customShares
-      ); // Delete and recreate participants
+      );
+      // Delete and recreate participants
 
       await client.query(
         "DELETE FROM expense_participants WHERE expense_id = $1",

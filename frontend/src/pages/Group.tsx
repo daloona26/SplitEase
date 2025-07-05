@@ -1,3 +1,5 @@
+// frontend/src/pages/GroupEnhanced.tsx
+
 import type React from "react";
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
@@ -326,6 +328,7 @@ export default function GroupEnhanced() {
     setError("");
 
     try {
+      // Removed /api prefix
       const response = await api.get(`/groups/${groupId}`);
       setGroupDetails(response.data);
     } catch (err: any) {
@@ -364,6 +367,7 @@ export default function GroupEnhanced() {
       if (filters.endDate) params.append("endDate", filters.endDate);
       if (filters.search) params.append("search", filters.search);
 
+      // Removed /api prefix
       const response = await api.get(
         `/expenses/${groupId}/expenses?${params.toString()}`
       );
@@ -395,6 +399,7 @@ export default function GroupEnhanced() {
     setLoading((prev) => ({ ...prev, members: true }));
 
     try {
+      // Removed /api prefix
       const response = await api.get(`/groups/${groupId}/members`);
       setMembers(response.data.members || []);
     } catch (err: any) {
@@ -414,6 +419,7 @@ export default function GroupEnhanced() {
     setLoading((prev) => ({ ...prev, balances: true }));
 
     try {
+      // Removed /api prefix
       const response = await api.get(`/expenses/${groupId}/balances`);
 
       if (response.data && Array.isArray(response.data.balances)) {
@@ -562,6 +568,7 @@ export default function GroupEnhanced() {
     setActionLoading((prev) => ({ ...prev, addExpense: true }));
 
     try {
+      // Removed /api prefix
       await api.post("/expenses", {
         groupId,
         description: newExpense.description.trim(),
@@ -657,6 +664,7 @@ export default function GroupEnhanced() {
     setActionLoading((prev) => ({ ...prev, editExpense: true }));
 
     try {
+      // Removed /api prefix
       await api.put(`/expenses/${editExpense.id}`, {
         description: editExpense.description.trim(),
         amount: totalAmount,
@@ -692,6 +700,7 @@ export default function GroupEnhanced() {
     setActionLoading((prev) => ({ ...prev, deleteExpense: true }));
 
     try {
+      // Removed /api prefix
       await api.delete(`/expenses/${expenseId}`);
       showMessageBox("success", "Expense deleted successfully!");
       fetchExpenses();
@@ -743,6 +752,7 @@ export default function GroupEnhanced() {
     setActionLoading((prev) => ({ ...prev, redistributeExpense: true }));
 
     try {
+      // Removed /api prefix
       await api.put(`/expenses/${selectedExpense.id}/redistribute`, {
         participants: redistributeForm.participantUserIds,
         splitType: redistributeForm.splitType,
@@ -780,6 +790,7 @@ export default function GroupEnhanced() {
     setActionLoading((prev) => ({ ...prev, addMember: true }));
 
     try {
+      // Removed /api prefix
       await api.post(`/groups/${groupId}/members`, {
         email: newMemberEmail.trim(),
       });
@@ -815,6 +826,7 @@ export default function GroupEnhanced() {
       async () => {
         setActionLoading((prev) => ({ ...prev, removeMember: true }));
         try {
+          // Removed /api prefix
           await api.delete(`/groups/${groupId}/members/${memberId}`);
           showMessageBox("success", "Member removed successfully!");
           fetchMembers();
@@ -1631,14 +1643,14 @@ export default function GroupEnhanced() {
       {/* Main Content Container */}
       <div
         className="max-w-xxs mx-auto px-3
-                   xs:max-w-sm xs:px-4
-                   sm:max-w-md sm:px-6
-                   md:max-w-2xl md:px-8
-                   lg:max-w-4xl lg:px-10
-                   xl:max-w-6xl xl:px-12
-                   2xl:max-w-7xl 2xl:px-14
-                   3xl:max-w-full 3xl:px-20
-                   4xl:px-32 5xl:px-48 py-6 sm:py-8"
+                   xs:max-w-sm xs:px-4
+                   sm:max-w-md sm:px-6
+                   md:max-w-2xl md:px-8
+                   lg:max-w-4xl lg:px-10
+                   xl:max-w-6xl xl:px-12
+                   2xl:max-w-7xl 2xl:px-14
+                   3xl:max-w-full 3xl:px-20
+                   4xl:px-32 5xl:px-48 py-6 sm:py-8"
       >
         {/* Trial Status Banner */}
         {user?.isTrialActive &&
