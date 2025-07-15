@@ -1,0 +1,293 @@
+/* RTL (Right-to-Left) Support for Arabic */
+
+/* Basic RTL text alignment */
+[dir="rtl"] {
+  text-align: right;
+}
+
+[dir="ltr"] {
+  text-align: left;
+}
+
+/* Flex direction reversal for RTL */
+[dir="rtl"] .flex {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .flex-col {
+  flex-direction: column;
+}
+
+/* Space utilities for RTL */
+[dir="rtl"] .space-x-1 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+  margin-right: calc(0.25rem * var(--tw-space-x-reverse));
+  margin-left: calc(0.25rem * calc(1 - var(--tw-space-x-reverse)));
+}
+
+[dir="rtl"] .space-x-2 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+  margin-right: calc(0.5rem * var(--tw-space-x-reverse));
+  margin-left: calc(0.5rem * calc(1 - var(--tw-space-x-reverse)));
+}
+
+[dir="rtl"] .space-x-3 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+  margin-right: calc(0.75rem * var(--tw-space-x-reverse));
+  margin-left: calc(0.75rem * calc(1 - var(--tw-space-x-reverse)));
+}
+
+[dir="rtl"] .space-x-4 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+  margin-right: calc(1rem * var(--tw-space-x-reverse));
+  margin-left: calc(1rem * calc(1 - var(--tw-space-x-reverse)));
+}
+
+[dir="rtl"] .space-x-6 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+  margin-right: calc(1.5rem * var(--tw-space-x-reverse));
+  margin-left: calc(1.5rem * calc(1 - var(--tw-space-x-reverse)));
+}
+
+/* Margin and padding adjustments for RTL */
+[dir="rtl"] .ml-2 {
+  margin-left: 0;
+  margin-right: 0.5rem;
+}
+
+[dir="rtl"] .mr-2 {
+  margin-right: 0;
+  margin-left: 0.5rem;
+}
+
+[dir="rtl"] .ml-4 {
+  margin-left: 0;
+  margin-right: 1rem;
+}
+
+[dir="rtl"] .mr-4 {
+  margin-right: 0;
+  margin-left: 1rem;
+}
+
+[dir="rtl"] .pl-3 {
+  padding-left: 0;
+  padding-right: 0.75rem;
+}
+
+[dir="rtl"] .pr-3 {
+  padding-right: 0;
+  padding-left: 0.75rem;
+}
+
+[dir="rtl"] .pl-4 {
+  padding-left: 0;
+  padding-right: 1rem;
+}
+
+[dir="rtl"] .pr-4 {
+  padding-right: 0;
+  padding-left: 1rem;
+}
+
+[dir="rtl"] .pl-6 {
+  padding-left: 0;
+  padding-right: 1.5rem;
+}
+
+[dir="rtl"] .pr-6 {
+  padding-right: 0;
+  padding-left: 1.5rem;
+}
+
+/* Border radius adjustments for RTL */
+[dir="rtl"] .rounded-l-lg {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-top-right-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+}
+
+[dir="rtl"] .rounded-r-lg {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-top-left-radius: 0.5rem;
+  border-bottom-left-radius: 0.5rem;
+}
+
+/* Position adjustments for RTL */
+[dir="rtl"] .left-0 {
+  left: auto;
+  right: 0;
+}
+
+[dir="rtl"] .right-0 {
+  right: auto;
+  left: 0;
+}
+
+[dir="rtl"] .left-4 {
+  left: auto;
+  right: 1rem;
+}
+
+[dir="rtl"] .right-4 {
+  right: auto;
+  left: 1rem;
+}
+
+/* Transform adjustments for RTL */
+[dir="rtl"] .transform {
+  transform: scaleX(-1);
+}
+
+[dir="rtl"] .transform .transform {
+  transform: scaleX(1);
+}
+
+/* Custom scrollbar for RTL */
+[dir="rtl"] .custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+[dir="rtl"] .custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[dir="rtl"] .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 3px;
+}
+
+[dir="rtl"] .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.7);
+}
+
+/* Input field adjustments for RTL */
+[dir="rtl"] input[type="text"],
+[dir="rtl"] input[type="email"],
+[dir="rtl"] input[type="password"],
+[dir="rtl"] input[type="number"],
+[dir="rtl"] input[type="date"],
+[dir="rtl"] textarea,
+[dir="rtl"] select {
+  text-align: right;
+}
+
+/* Button icon spacing for RTL */
+[dir="rtl"] .btn-icon-left {
+  margin-right: 0;
+  margin-left: 0.5rem;
+}
+
+[dir="rtl"] .btn-icon-right {
+  margin-left: 0;
+  margin-right: 0.5rem;
+}
+
+/* Dropdown positioning for RTL */
+[dir="rtl"] .dropdown-menu {
+  left: auto;
+  right: 0;
+}
+
+/* Modal positioning for RTL */
+[dir="rtl"] .modal-close {
+  left: 1rem;
+  right: auto;
+}
+
+/* Navigation adjustments for RTL */
+[dir="rtl"] .nav-item {
+  margin-left: 0;
+  margin-right: 1rem;
+}
+
+[dir="rtl"] .nav-item:last-child {
+  margin-right: 0;
+}
+
+/* Grid adjustments for RTL */
+[dir="rtl"] .grid-cols-2 > *:first-child {
+  order: 2;
+}
+
+[dir="rtl"] .grid-cols-2 > *:last-child {
+  order: 1;
+}
+
+/* Specific component adjustments */
+[dir="rtl"] .language-switcher {
+  left: 1rem;
+  right: auto;
+}
+
+[dir="rtl"] .export-modal .grid-cols-2 {
+  direction: ltr;
+}
+
+[dir="rtl"] .export-modal .grid-cols-2 > * {
+  direction: rtl;
+}
+
+/* Animation adjustments for RTL */
+[dir="rtl"] .slide-in-right {
+  animation: slideInLeft 0.3s ease-out;
+}
+
+[dir="rtl"] .slide-in-left {
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Typography adjustments for Arabic */
+[dir="rtl"] {
+  font-family: 'Segoe UI', 'Tahoma', 'Arial', 'Helvetica Neue', sans-serif;
+}
+
+/* Ensure proper line height for Arabic text */
+[dir="rtl"] p,
+[dir="rtl"] span,
+[dir="rtl"] div {
+  line-height: 1.6;
+}
+
+/* Table adjustments for RTL */
+[dir="rtl"] table {
+  direction: rtl;
+}
+
+[dir="rtl"] th,
+[dir="rtl"] td {
+  text-align: right;
+}
+
+[dir="rtl"] th:first-child,
+[dir="rtl"] td:first-child {
+  border-right: none;
+  border-left: 1px solid #e5e7eb;
+}
+
+[dir="rtl"] th:last-child,
+[dir="rtl"] td:last-child {
+  border-left: none;
+  border-right: 1px solid #e5e7eb;
+}
+

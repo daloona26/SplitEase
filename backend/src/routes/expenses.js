@@ -157,7 +157,7 @@ function calculateShares(
   } else if (splitType === "percentage" && customShares) {
     const totalPercentage = Object.values(customShares).reduce(
       (sum, percentage) =>
-        sum + roundToTwoDecimals(Number.parseFloat(percentage || "0")), // Ensure customShares[userId] is safely parsed
+        sum + roundToTwoDecimals(Number.parseFloat(percentage || "0")),
       0
     );
     if (Math.abs(roundToTwoDecimals(totalPercentage) - 100) > 0.01) {
@@ -198,6 +198,7 @@ router.post("/", authenticateToken, checkSubscription, async (req, res) => {
     participants,
     splitType = "equal",
     customShares = null,
+    photo_url = null,
   } = req.body;
   const currentUserId = req.user.id;
 
@@ -265,7 +266,7 @@ router.post("/", authenticateToken, checkSubscription, async (req, res) => {
     if (Math.abs(roundToTwoDecimals(totalPaidAmount) - expenseAmount) > 0.01) {
       await client.query("ROLLBACK");
       return res.status(400).json({
-        message: `Total amount paid by payers ($${roundToTwoDecimals(
+        message: `Total amount paid ($${roundToTwoDecimals(
           totalPaidAmount
         )}) must equal the expense amount ($${expenseAmount}).`,
       });
@@ -295,8 +296,8 @@ router.post("/", authenticateToken, checkSubscription, async (req, res) => {
 
     // Insert expense
     const newExpenseResult = await client.query(
-      "INSERT INTO expenses (group_id, description, amount, category) VALUES ($1, $2, $3, $4) RETURNING id, description, amount, category, expense_date",
-      [groupId, description, expenseAmount, category || "general"]
+      "INSERT INTO expenses (group_id, description, amount, category, photo_url) VALUES ($1, $2, $3, $4, $5) RETURNING id, description, amount, category, expense_date, photo_url",
+      [groupId, description, expenseAmount, category || "general", photo_url]
     );
     const newExpense = newExpenseResult.rows[0];
 
@@ -352,6 +353,7 @@ router.post("/", authenticateToken, checkSubscription, async (req, res) => {
         amount: roundToTwoDecimals(newExpense.amount),
         category: newExpense.category,
         expense_date: newExpense.expense_date,
+        photo_url: newExpense.photo_url,
         payments: payerDetails.rows.map((p) => ({
           user_id: p.user_id,
           name: p.name,
@@ -392,10 +394,10 @@ router.get("/:groupId/expenses", authenticateToken, async (req, res) => {
         .status(403)
         .json({ message: "Not authorized to view expenses for this group." });
     }
-    // Build base query for expenses (filters logic removed for brevity, assume it's there)
+    // Build base query for expenses (filters logic removed for brevity, assume it\"s there)
     // ... your existing filter logic (category, startDate, endDate, search) ...
 
-    let expensesQuery = `SELECT id, description, amount, category, expense_date FROM expenses WHERE group_id = $1`;
+    let expensesQuery = `SELECT id, description, amount, category, expense_date, photo_url FROM expenses WHERE group_id = $1`;
     const queryParams = [groupId];
     let paramIndex = 2; // Start from 2 for additional params
 
@@ -449,6 +451,7 @@ router.get("/:groupId/expenses", authenticateToken, async (req, res) => {
             amount: roundToTwoDecimals(expense.amount),
             category: expense.category,
             expense_date: expense.expense_date,
+            photo_url: expense.photo_url,
             payments: paymentsResult.rows.map((p) => ({
               user_id: p.user_id,
               name: p.name,
@@ -470,6 +473,7 @@ router.get("/:groupId/expenses", authenticateToken, async (req, res) => {
             amount: roundToTwoDecimals(expense.amount),
             category: expense.category,
             expense_date: expense.expense_date,
+            photo_url: null,
             payments: [],
             participants: [],
           };
@@ -557,7 +561,7 @@ router.get("/:expenseId", authenticateToken, async (req, res) => {
   try {
     // Get basic expense info
     const expenseResult = await query(
-      `SELECT id, description, amount, category, group_id, expense_date
+      `SELECT id, description, amount, category, group_id, expense_date, photo_url
            FROM expenses
            WHERE id = $1`,
       [expenseId]
@@ -605,6 +609,7 @@ router.get("/:expenseId", authenticateToken, async (req, res) => {
       category: expense.category,
       group_id: expense.group_id,
       expense_date: expense.expense_date,
+      photo_url: expense.photo_url,
       payments: paymentsResult.rows.map((p) => ({
         user_id: p.user_id,
         name: p.name,
@@ -764,7 +769,7 @@ router.put(
   authenticateToken,
   checkSubscription,
   async (req, res) => {
-    const { expenseId } = req.params;
+    const { expenseId } = req.params; // Destructure expenseId from req.params
     const {
       description,
       amount,
@@ -773,6 +778,7 @@ router.put(
       participants,
       splitType = "equal",
       customShares = null,
+      photo_url = null,
     } = req.body;
     const currentUserId = req.user.id;
 
@@ -805,7 +811,7 @@ router.put(
       let expenseResult;
       try {
         expenseResult = await client.query(
-          "SELECT group_id FROM expenses WHERE id = $1",
+          "SELECT group_id, photo_url FROM expenses WHERE id = $1", // Fetch existing photo_url
           [expenseId]
         );
       } catch (dbError) {
@@ -833,6 +839,7 @@ router.put(
 
       const expense = expenseResult.rows[0];
       const groupId = expense.group_id;
+      const existingPhotoUrl = expense.photo_url; // Get existing photo_url
 
       // Wrap authorization checks in try-catch
       let isCreator, isOriginalPayer;
@@ -910,10 +917,14 @@ router.put(
 
       let updateExpenseResult;
       try {
+        // Determine the photo_url to save: new one if provided, otherwise existing one
+        const finalPhotoUrl =
+          photo_url !== undefined ? photo_url : existingPhotoUrl;
+
         // Update expense
         updateExpenseResult = await client.query(
-          "UPDATE expenses SET description = $1, amount = $2, category = $3 WHERE id = $4 RETURNING id, description, amount, category, expense_date",
-          [description, expenseAmount, category, expenseId]
+          "UPDATE expenses SET description = $1, amount = $2, category = $3, photo_url = $4 WHERE id = $5 RETURNING id, description, amount, category, expense_date, photo_url",
+          [description, expenseAmount, category, finalPhotoUrl, expenseId]
         );
       } catch (dbError) {
         console.error("Error updating expense in DB:", dbError);
@@ -1030,6 +1041,7 @@ router.put(
             amount: roundToTwoDecimals(updatedExpense.amount),
             category: updatedExpense.category,
             expense_date: updatedExpense.expense_date,
+            photo_url: updatedExpense.photo_url,
             payments: [], // Indicate partial data
             participants: [], // Indicate partial data
           },
@@ -1044,6 +1056,7 @@ router.put(
           amount: roundToTwoDecimals(updatedExpense.amount),
           category: updatedExpense.category,
           expense_date: updatedExpense.expense_date,
+          photo_url: updatedExpense.photo_url,
           payments: payerDetails.rows.map((p) => ({
             user_id: p.user_id,
             name: p.name,

@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { AlertCircle, CheckCircle, XCircle, Info } from "lucide-react";
 import { useTheme } from "../contexts/ThemeContext";
 
@@ -19,6 +20,7 @@ const MessageBoxComponent: React.FC<MessageBoxProps> = ({
   onCancel,
   show,
 }) => {
+  const { t } = useTranslation();
   const { theme } = useTheme();
 
   if (!show) return null;
@@ -72,13 +74,13 @@ const MessageBoxComponent: React.FC<MessageBoxProps> = ({
                   onClick={onCancel}
                   className={`${buttonBaseClass} flex-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 focus:ring-slate-400 dark:focus:ring-slate-500`}
                 >
-                  Cancel
+                  {t("Cancel")}
                 </button>
                 <button
                   onClick={onConfirm}
                   className={`${buttonBaseClass} flex-1 ${buttonColorMap[type]}`}
                 >
-                  Confirm
+                  {t("Confirm")}
                 </button>
               </>
             ) : (
@@ -86,7 +88,7 @@ const MessageBoxComponent: React.FC<MessageBoxProps> = ({
                 onClick={onConfirm}
                 className={`${buttonBaseClass} w-full ${buttonColorMap[type]}`}
               >
-                OK
+                {t("OK")}
               </button>
             )}
           </div>

@@ -1,10 +1,11 @@
-// frontend/src/pages/GroupEnhanced.tsx
-
 import type React from "react";
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth, api } from "../contexts/AuthContext";
 import Navbar from "../components/Navbar";
+import ExportModal from "../components/ExportModal";
+import RecurringExpenseModal from "../components/RecurringExpenseModal";
+import PhotoUpload from "../components/PhotoUpload";
 import {
   Plus,
   DollarSign,
@@ -23,10 +24,14 @@ import {
   Shuffle,
   Percent,
   Calculator,
-  Star, // Used for trial banner
+  Star,
+  Download,
+  Calendar,
+  Camera,
+  Repeat,
 } from "lucide-react";
 
-// Interfaces (kept as is, no changes needed here for responsiveness)
+// Interfaces
 interface Member {
   id: string;
   name: string;
@@ -58,6 +63,7 @@ interface Expense {
   amount: number;
   category: string;
   expense_date: string;
+  photo_url?: string;
   payments: Payment[];
   participants: Participant[];
 }
@@ -98,6 +104,23 @@ interface Category {
   average_amount: number;
 }
 
+interface RecurringExpense {
+  id: string;
+  name: string;
+  amount: number;
+  category: string;
+  frequency: "daily" | "weekly" | "monthly" | "yearly";
+  start_date: string;
+  end_date?: string;
+  next_execution: string;
+  is_active: boolean;
+  payer_id: string;
+  payer_name: string;
+  participant_ids: string[];
+  split_type: "equal" | "custom" | "percentage";
+  custom_shares?: Record<string, number>;
+}
+
 type TabType = "expenses" | "balances" | "members" | "stats";
 type SplitType = "equal" | "custom" | "percentage";
 
@@ -108,6 +131,9 @@ const EXPENSE_CATEGORIES = [
   { value: "entertainment", label: "Entertainment" },
   { value: "shopping", label: "Shopping" },
   { value: "utilities", label: "Utilities" },
+  { value: "rent", label: "Rent" },
+  { value: "subscriptions", label: "Subscriptions" },
+  { value: "insurance", label: "Insurance" },
   { value: "other", label: "Other" },
 ];
 
@@ -122,6 +148,9 @@ export default function GroupEnhanced() {
   const [members, setMembers] = useState<Member[]>([]);
   const [balances, setBalances] = useState<Balance[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [recurringExpenses, setRecurringExpenses] = useState<
+    RecurringExpense[]
+  >([]);
   const [stats, setStats] = useState<ExpenseStats>({
     totalCount: 0,
     totalAmount: 0,
@@ -136,7 +165,11 @@ export default function GroupEnhanced() {
   const [showRedistributeExpense, setShowRedistributeExpense] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
+  const [editingRecurringExpense, setEditingRecurringExpense] =
+    useState<RecurringExpense | null>(null);
 
   // Form State
   const [newExpense, setNewExpense] = useState({
@@ -147,6 +180,7 @@ export default function GroupEnhanced() {
     participantUserIds: [user?.id || ""],
     splitType: "equal" as SplitType,
     customShares: {} as Record<string, number>,
+    photo: null as string | null,
   });
 
   const [editExpense, setEditExpense] = useState({
@@ -158,6 +192,7 @@ export default function GroupEnhanced() {
     participantUserIds: [user?.id || ""],
     splitType: "equal" as SplitType,
     customShares: {} as Record<string, number>,
+    photo: null as string | null,
   });
 
   const [redistributeForm, setRedistributeForm] = useState({
@@ -183,6 +218,7 @@ export default function GroupEnhanced() {
     members: true,
     balances: true,
     categories: true,
+    recurringExpenses: true,
   });
 
   // Action Loading States
@@ -192,9 +228,11 @@ export default function GroupEnhanced() {
     deleteExpense: false,
     redistributeExpense: false,
     addMember: false,
-    deleteGroup: false, // Not used in this component, but good to keep if inherited
+    deleteGroup: false,
     removeMember: false,
-    updateGroup: false, // Not used in this component, but good to keep if inherited
+    updateGroup: false,
+    export: false,
+    uploadPhoto: false,
   });
 
   // Error state
@@ -328,7 +366,6 @@ export default function GroupEnhanced() {
     setError("");
 
     try {
-      // Removed /api prefix
       const response = await api.get(`/groups/${groupId}`);
       setGroupDetails(response.data);
     } catch (err: any) {
@@ -367,7 +404,6 @@ export default function GroupEnhanced() {
       if (filters.endDate) params.append("endDate", filters.endDate);
       if (filters.search) params.append("search", filters.search);
 
-      // Removed /api prefix
       const response = await api.get(
         `/expenses/${groupId}/expenses?${params.toString()}`
       );
@@ -399,7 +435,6 @@ export default function GroupEnhanced() {
     setLoading((prev) => ({ ...prev, members: true }));
 
     try {
-      // Removed /api prefix
       const response = await api.get(`/groups/${groupId}/members`);
       setMembers(response.data.members || []);
     } catch (err: any) {
@@ -419,7 +454,6 @@ export default function GroupEnhanced() {
     setLoading((prev) => ({ ...prev, balances: true }));
 
     try {
-      // Removed /api prefix
       const response = await api.get(`/expenses/${groupId}/balances`);
 
       if (response.data && Array.isArray(response.data.balances)) {
@@ -457,14 +491,116 @@ export default function GroupEnhanced() {
     }
   }, [user, groupId, api, showMessageBox]);
 
+  // Enhanced fetch recurring expenses with better error handling and retry logic
+  const fetchRecurringExpenses = useCallback(async () => {
+    if (!user || !groupId || !api) return;
+    setLoading((prev) => ({ ...prev, recurringExpenses: true }));
+
+    try {
+      console.log(
+        "🔍 FRONTEND: Fetching recurring expenses for group:",
+        groupId
+      );
+
+      const response = await api.get(`/recurring/${groupId}`);
+
+      console.log("🔍 FRONTEND: Recurring expenses response:", response.data);
+
+      // Ensure we have a valid response structure
+      if (response.data && typeof response.data === "object") {
+        const recurringExpensesData = response.data.recurringExpenses || [];
+
+        // Validate and process the data
+        const processedRecurringExpenses = Array.isArray(recurringExpensesData)
+          ? recurringExpensesData.map((expense: any) => ({
+              id: expense.id,
+              name: expense.name || "",
+              amount: Number(expense.amount) || 0,
+              category: expense.category || "general",
+              frequency: expense.frequency || "monthly",
+              start_date: expense.start_date,
+              end_date: expense.end_date,
+              next_execution: expense.next_execution,
+              is_active: Boolean(expense.is_active),
+              payer_id: expense.payer_id,
+              payer_name: expense.payer_name || "Unknown",
+              participant_ids: Array.isArray(expense.participant_ids)
+                ? expense.participant_ids
+                : [],
+              split_type: expense.split_type || "equal",
+              custom_shares: expense.custom_shares || null,
+              created_at: expense.created_at,
+              updated_at: expense.updated_at,
+            }))
+          : [];
+
+        setRecurringExpenses(processedRecurringExpenses);
+        console.log(
+          "🔍 FRONTEND: Processed recurring expenses:",
+          processedRecurringExpenses
+        );
+      } else {
+        console.warn(
+          "🔍 FRONTEND: Invalid recurring expenses response structure:",
+          response.data
+        );
+        setRecurringExpenses([]);
+      }
+    } catch (err: any) {
+      console.error("🔍 FRONTEND: Failed to fetch recurring expenses:", err);
+      console.error("🔍 FRONTEND: Error details:", {
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        message: err.message,
+      });
+
+      // More specific error handling
+      if (err.response?.status === 403) {
+        showMessageBox(
+          "error",
+          "Access denied to recurring expenses for this group."
+        );
+      } else if (err.response?.status === 404) {
+        showMessageBox(
+          "error",
+          "Recurring expenses endpoint not found. Please check your API configuration."
+        );
+      } else if (err.response?.status >= 500) {
+        showMessageBox(
+          "error",
+          "Server error while fetching recurring expenses. Please try again later."
+        );
+      } else {
+        showMessageBox(
+          "error",
+          err.response?.data?.message || "Failed to load recurring expenses."
+        );
+      }
+
+      setRecurringExpenses([]);
+    } finally {
+      setLoading((prev) => ({ ...prev, recurringExpenses: false }));
+    }
+  }, [user, groupId, api, showMessageBox]);
+
   // Initial data fetch on component mount and when groupId or user changes
   useEffect(() => {
     if (user && groupId && api) {
       fetchGroupDetails();
       fetchMembers();
       fetchExpenses();
+      fetchRecurringExpenses();
     }
-  }, [fetchGroupDetails, fetchMembers, fetchExpenses, user, groupId, api]);
+  }, [
+    fetchGroupDetails,
+    fetchMembers,
+    fetchExpenses,
+    fetchRecurringExpenses,
+    user,
+    groupId,
+    api,
+  ]);
 
   // Refetch data when activeTab changes, or for expenses/balances when filters change
   useEffect(() => {
@@ -476,6 +612,291 @@ export default function GroupEnhanced() {
       fetchMembers();
     }
   }, [activeTab, fetchBalances, fetchExpenses, fetchMembers]);
+
+  const handlePhotoUpload = async (
+    file: File,
+    formType: "new" | "edit"
+  ): Promise<string> => {
+    setActionLoading((prev) => ({ ...prev, uploadPhoto: true }));
+    try {
+      const formData = new FormData();
+      formData.append("photo", file);
+      const response = await api.post("/upload/expense-photo", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const photoUrl = response.data.url;
+      if (formType === "new") {
+        setNewExpense((prev) => ({ ...prev, photo: photoUrl }));
+      } else {
+        setEditExpense((prev) => ({ ...prev, photo: photoUrl }));
+      }
+      return photoUrl;
+    } catch (error) {
+      console.error("Photo upload failed:", error);
+      throw new Error("Failed to upload photo");
+    } finally {
+      setActionLoading((prev) => ({ ...prev, uploadPhoto: false }));
+    }
+  };
+
+  // Export handler
+
+  const handleExport = async (
+    format: "csv" | "pdf",
+    dateRange?: { start: string; end: string }
+  ) => {
+    setActionLoading((prev) => ({ ...prev, export: true }));
+
+    try {
+      // Method 1: Try direct API call with base64 response
+      const params = new URLSearchParams();
+      if (dateRange?.start) params.append("startDate", dateRange.start);
+      if (dateRange?.end) params.append("endDate", dateRange.end);
+      params.append("format", "base64"); // Request base64 encoded response
+      params.append("t", Date.now().toString());
+
+      const url = `/export/${groupId}/${format}?${params.toString()}`;
+
+      try {
+        // First try: Get base64 encoded data
+        const response = await api.get(url, {
+          headers: {
+            Accept: "application/json",
+            "Cache-Control": "no-cache",
+          },
+        });
+
+        if (response.data && response.data.base64Data) {
+          // Decode base64 data
+          const binaryString = atob(response.data.base64Data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+
+          const blob = new Blob([bytes], {
+            type: format === "pdf" ? "application/pdf" : "text/csv",
+          });
+
+          // Create download
+          const downloadUrl = window.URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = downloadUrl;
+          link.download =
+            response.data.filename || `export_${Date.now()}.${format}`;
+          link.style.display = "none";
+
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 100);
+
+          showMessageBox(
+            "success",
+            `${format.toUpperCase()} export completed successfully!`
+          );
+          return;
+        }
+      } catch (base64Error) {
+        console.log("Base64 method failed, trying blob method...");
+      }
+
+      // Method 2: Try blob response (fallback)
+      try {
+        const blobParams = new URLSearchParams();
+        if (dateRange?.start) blobParams.append("startDate", dateRange.start);
+        if (dateRange?.end) blobParams.append("endDate", dateRange.end);
+        blobParams.append("t", Date.now().toString());
+
+        const blobUrl = `/export/${groupId}/${format}?${blobParams.toString()}`;
+
+        const blobResponse = await api.get(blobUrl, {
+          responseType: "blob",
+          headers: {
+            Accept: format === "pdf" ? "application/pdf" : "text/csv",
+            "Cache-Control": "no-cache",
+          },
+        });
+
+        const blob = new Blob([blobResponse.data], {
+          type: format === "pdf" ? "application/pdf" : "text/csv",
+        });
+
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+
+        const timestamp = new Date()
+          .toISOString()
+          .slice(0, 19)
+          .replace(/:/g, "-");
+        link.download = `${
+          groupDetails?.name || "Group"
+        }_expenses_${timestamp}.${format}`;
+        link.style.display = "none";
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 100);
+
+        showMessageBox(
+          "success",
+          `${format.toUpperCase()} export completed successfully!`
+        );
+        return;
+      } catch (blobError) {
+        console.log("Blob method failed, trying data URL method...");
+      }
+
+      // Method 3: Data URL method (most aggressive bypass)
+      try {
+        const dataParams = new URLSearchParams();
+        if (dateRange?.start) dataParams.append("startDate", dateRange.start);
+        if (dateRange?.end) dataParams.append("endDate", dateRange.end);
+        dataParams.append("format", "dataurl");
+        dataParams.append("t", Date.now().toString());
+
+        const dataUrl = `/export/${groupId}/${format}?${dataParams.toString()}`;
+
+        const dataResponse = await api.get(dataUrl, {
+          headers: {
+            Accept: "application/json",
+            "Cache-Control": "no-cache",
+          },
+        });
+
+        if (dataResponse.data && dataResponse.data.dataUrl) {
+          const link = document.createElement("a");
+          link.href = dataResponse.data.dataUrl;
+          link.download =
+            dataResponse.data.filename || `export_${Date.now()}.${format}`;
+          link.style.display = "none";
+
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          showMessageBox(
+            "success",
+            `${format.toUpperCase()} export completed successfully!`
+          );
+          return;
+        }
+      } catch (dataUrlError) {
+        console.log("Data URL method failed, trying iframe method...");
+      }
+
+      // Method 4: Hidden iframe method (last resort)
+      const iframeParams = new URLSearchParams();
+      if (dateRange?.start) iframeParams.append("startDate", dateRange.start);
+      if (dateRange?.end) iframeParams.append("endDate", dateRange.end);
+      iframeParams.append("download", "true");
+      iframeParams.append("t", Date.now().toString());
+
+      const token = localStorage.getItem("token");
+      const iframeUrl = `${
+        import.meta.env.VITE_API_URL || "http://localhost:5000"
+      }/export/${groupId}/${format}?${iframeParams.toString()}&token=${encodeURIComponent(
+        token || ""
+      )}`;
+
+      const iframe = document.createElement("iframe");
+      iframe.style.display = "none";
+      iframe.src = iframeUrl;
+
+      document.body.appendChild(iframe);
+
+      setTimeout(() => {
+        if (iframe.parentNode) {
+          document.body.removeChild(iframe);
+        }
+      }, 5000);
+
+      showMessageBox(
+        "info",
+        `${format.toUpperCase()} export initiated. The download should start shortly.`
+      );
+    } catch (error: any) {
+      console.error("All export methods failed:", error);
+      showMessageBox(
+        "error",
+        "Failed to export data. Please check your internet connection and try again."
+      );
+    } finally {
+      setActionLoading((prev) => ({ ...prev, export: false }));
+    }
+  };
+
+  // Recurring expense handlers with improved error handling
+  const handleSaveRecurringExpense = async (
+    recurringExpense: Omit<RecurringExpense, "id" | "next_execution">
+  ) => {
+    try {
+      console.log("🔍 FRONTEND: Saving recurring expense:", recurringExpense);
+
+      const response = await api.post("/recurring", {
+        ...recurringExpense,
+        groupId,
+      });
+
+      console.log("🔍 FRONTEND: Save response:", response.data);
+      showMessageBox("success", "Recurring expense created successfully!");
+      fetchRecurringExpenses();
+    } catch (error: any) {
+      console.error("🔍 FRONTEND: Failed to save recurring expense:", error);
+      showMessageBox(
+        "error",
+        error.response?.data?.message || "Failed to create recurring expense."
+      );
+    }
+  };
+
+  const handleUpdateRecurringExpense = async (
+    id: string,
+    recurringExpense: Partial<RecurringExpense>
+  ) => {
+    try {
+      console.log(
+        "🔍 FRONTEND: Updating recurring expense:",
+        id,
+        recurringExpense
+      );
+
+      const response = await api.put(`/recurring/${id}`, recurringExpense);
+
+      console.log("🔍 FRONTEND: Update response:", response.data);
+      showMessageBox("success", "Recurring expense updated successfully!");
+      fetchRecurringExpenses();
+      setEditingRecurringExpense(null);
+    } catch (error: any) {
+      console.error("🔍 FRONTEND: Failed to update recurring expense:", error);
+      showMessageBox(
+        "error",
+        error.response?.data?.message || "Failed to update recurring expense."
+      );
+    }
+  };
+
+  const handleDeleteRecurringExpense = async (id: string) => {
+    try {
+      console.log("🔍 FRONTEND: Deleting recurring expense:", id);
+
+      const response = await api.delete(`/recurring/${id}`);
+
+      console.log("🔍 FRONTEND: Delete response:", response.data);
+      showMessageBox("success", "Recurring expense deleted successfully!");
+      fetchRecurringExpenses();
+    } catch (error: any) {
+      console.error("🔍 FRONTEND: Failed to delete recurring expense:", error);
+      showMessageBox(
+        "error",
+        error.response?.data?.message || "Failed to delete recurring expense."
+      );
+    }
+  };
 
   // Add Expense Helper for payments
   const handleAddPayment = (formType: "new" | "edit") => {
@@ -512,7 +933,7 @@ export default function GroupEnhanced() {
     }));
   };
 
-  // Enhanced add expense handler
+  // Enhanced add expense handler with photo support
   const addExpense = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -568,8 +989,7 @@ export default function GroupEnhanced() {
     setActionLoading((prev) => ({ ...prev, addExpense: true }));
 
     try {
-      // Removed /api prefix
-      await api.post("/expenses", {
+      const expenseData = {
         groupId,
         description: newExpense.description.trim(),
         amount: totalAmount,
@@ -582,7 +1002,10 @@ export default function GroupEnhanced() {
         splitType: newExpense.splitType,
         customShares:
           newExpense.splitType !== "equal" ? newExpense.customShares : null,
-      });
+        photo_url: newExpense.photo,
+      };
+
+      await api.post("/expenses", expenseData);
 
       showMessageBox("success", "Expense added successfully!");
       setShowAddExpense(false);
@@ -594,6 +1017,7 @@ export default function GroupEnhanced() {
         participantUserIds: [user?.id || ""],
         splitType: "equal",
         customShares: {},
+        photo: null,
       });
       fetchExpenses();
       fetchBalances();
@@ -608,7 +1032,7 @@ export default function GroupEnhanced() {
     }
   };
 
-  // Enhanced edit expense handler
+  // Enhanced edit expense handler with photo support
   const editExpenseHandler = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -664,8 +1088,7 @@ export default function GroupEnhanced() {
     setActionLoading((prev) => ({ ...prev, editExpense: true }));
 
     try {
-      // Removed /api prefix
-      await api.put(`/expenses/${editExpense.id}`, {
+      const expenseData = {
         description: editExpense.description.trim(),
         amount: totalAmount,
         category: editExpense.category,
@@ -677,7 +1100,10 @@ export default function GroupEnhanced() {
         splitType: editExpense.splitType,
         customShares:
           editExpense.splitType !== "equal" ? editExpense.customShares : null,
-      });
+        photo_url: editExpense.photo,
+      };
+
+      await api.put(`/expenses/${editExpense.id}`, expenseData);
 
       showMessageBox("success", "Expense updated successfully!");
       setShowEditExpense(false);
@@ -700,7 +1126,6 @@ export default function GroupEnhanced() {
     setActionLoading((prev) => ({ ...prev, deleteExpense: true }));
 
     try {
-      // Removed /api prefix
       await api.delete(`/expenses/${expenseId}`);
       showMessageBox("success", "Expense deleted successfully!");
       fetchExpenses();
@@ -752,7 +1177,6 @@ export default function GroupEnhanced() {
     setActionLoading((prev) => ({ ...prev, redistributeExpense: true }));
 
     try {
-      // Removed /api prefix
       await api.put(`/expenses/${selectedExpense.id}/redistribute`, {
         participants: redistributeForm.participantUserIds,
         splitType: redistributeForm.splitType,
@@ -790,7 +1214,6 @@ export default function GroupEnhanced() {
     setActionLoading((prev) => ({ ...prev, addMember: true }));
 
     try {
-      // Removed /api prefix
       await api.post(`/groups/${groupId}/members`, {
         email: newMemberEmail.trim(),
       });
@@ -826,7 +1249,6 @@ export default function GroupEnhanced() {
       async () => {
         setActionLoading((prev) => ({ ...prev, removeMember: true }));
         try {
-          // Removed /api prefix
           await api.delete(`/groups/${groupId}/members/${memberId}`);
           showMessageBox("success", "Member removed successfully!");
           fetchMembers();
@@ -889,6 +1311,7 @@ export default function GroupEnhanced() {
       participantUserIds: expense.participants.map((p) => p.user_id),
       splitType: detectedSplitType,
       customShares: customSharesMap,
+      photo: expense.photo_url || null,
     });
     setSelectedExpense(expense);
     setShowEditExpense(true);
@@ -942,7 +1365,6 @@ export default function GroupEnhanced() {
         participantUserIds: prev.participantUserIds.includes(userId)
           ? prev.participantUserIds.filter((id) => id !== userId)
           : [...prev.participantUserIds, userId],
-        // Remove custom share if participant is unticked
         customShares: prev.customShares.hasOwnProperty(userId)
           ? (({ [userId]: removed, ...rest }) => rest)(prev.customShares)
           : prev.customShares,
@@ -1250,6 +1672,20 @@ export default function GroupEnhanced() {
                   <div className="text-2xl xs:text-3xl font-bold text-green-600 dark:text-green-400 mb-3">
                     ${expense.amount.toFixed(2)}
                   </div>
+                  {/* Photo thumbnail */}
+                  {expense.photo_url && (
+                    <img
+                      src={expense.photo_url} // full URL from backend
+                      alt="Receipt"
+                      className="w-16 h-16 object-cover rounded-lg border-2 border-slate-200 dark:border-slate-600 cursor-pointer hover:opacity-75 transition-opacity"
+                      onClick={() => window.open(expense.photo_url, "_blank")}
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = "/placeholder.png"; // fallback image in public folder
+                      }}
+                    />
+                  )}
+
                   <div className="grid grid-cols-1 xxs:grid-cols-2 gap-2 xs:gap-4 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                     <div>
                       <span className="font-semibold block sm:inline">
@@ -1640,17 +2076,42 @@ export default function GroupEnhanced() {
       {/* Message Box */}
       {renderMessageBox()}
 
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        groupId={groupId!}
+        groupName={groupDetails.name}
+        onExport={handleExport}
+      />
+
+      {/* Recurring Expense Modal */}
+      <RecurringExpenseModal
+        isOpen={showRecurringModal}
+        onClose={() => {
+          setShowRecurringModal(false);
+          setEditingRecurringExpense(null);
+        }}
+        groupId={groupId!}
+        members={members}
+        onSave={handleSaveRecurringExpense}
+        onUpdate={handleUpdateRecurringExpense}
+        onDelete={handleDeleteRecurringExpense}
+        recurringExpenses={recurringExpenses}
+        editingExpense={editingRecurringExpense}
+      />
+
       {/* Main Content Container */}
       <div
         className="max-w-xxs mx-auto px-3
-                   xs:max-w-sm xs:px-4
-                   sm:max-w-md sm:px-6
-                   md:max-w-2xl md:px-8
-                   lg:max-w-4xl lg:px-10
-                   xl:max-w-6xl xl:px-12
-                   2xl:max-w-7xl 2xl:px-14
-                   3xl:max-w-full 3xl:px-20
-                   4xl:px-32 5xl:px-48 py-6 sm:py-8"
+                   xs:max-w-sm xs:px-4
+                   sm:max-w-md sm:px-6
+                   md:max-w-2xl md:px-8
+                   lg:max-w-4xl lg:px-10
+                   xl:max-w-6xl xl:px-12
+                   2xl:max-w-7xl 2xl:px-14
+                   3xl:max-w-full 3xl:px-20
+                   4xl:px-32 5xl:px-48 py-6 sm:py-8"
       >
         {/* Trial Status Banner */}
         {user?.isTrialActive &&
@@ -1735,6 +2196,10 @@ export default function GroupEnhanced() {
                   <TrendingUp className="h-3 w-3 xs:h-4 xs:w-4 mr-1.5 xs:mr-2 text-slate-500 dark:text-slate-400" />
                   ${groupDetails.totalAmount.toFixed(2)} total
                 </span>
+                <span className="flex items-center bg-slate-100 dark:bg-slate-700 px-2 py-1 xs:px-3 xs:py-2 rounded-lg">
+                  <Repeat className="h-3 w-3 xs:h-4 xs:w-4 mr-1.5 xs:mr-2 text-slate-500 dark:text-slate-400" />
+                  {recurringExpenses.length} recurring
+                </span>
               </div>
             </div>
             <div className="flex flex-wrap justify-end gap-x-2 gap-y-2 mt-4 sm:mt-0">
@@ -1744,6 +2209,20 @@ export default function GroupEnhanced() {
               >
                 <Filter className="h-4 w-4 mr-1.5" />
                 Filters
+              </button>
+              <button
+                onClick={() => setShowExportModal(true)}
+                className="flex items-center px-4 py-2 sm:px-6 sm:py-3 text-green-600 dark:text-green-300 bg-green-100 dark:bg-green-900 rounded-lg sm:rounded-xl hover:bg-green-200 dark:hover:bg-green-800 transition-colors font-semibold text-sm"
+              >
+                <Download className="h-4 w-4 mr-1.5" />
+                Export
+              </button>
+              <button
+                onClick={() => setShowRecurringModal(true)}
+                className="flex items-center px-4 py-2 sm:px-6 sm:py-3 text-purple-600 dark:text-purple-300 bg-purple-100 dark:bg-purple-900 rounded-lg sm:rounded-xl hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors font-semibold text-sm"
+              >
+                <Calendar className="h-4 w-4 mr-1.5" />
+                Recurring
               </button>
               {groupDetails.creator_user_id === user?.id && (
                 <button
@@ -1875,6 +2354,20 @@ export default function GroupEnhanced() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Receipt Photo */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                  Receipt Photo (Optional)
+                </label>
+                <PhotoUpload
+                  onUpload={(file) => handlePhotoUpload(file, "new")}
+                  existingPhoto={newExpense.photo || undefined}
+                  onRemove={() =>
+                    setNewExpense((prev) => ({ ...prev, photo: null }))
+                  }
+                />
               </div>
 
               {/* Who Paid */}
@@ -2252,6 +2745,20 @@ export default function GroupEnhanced() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Receipt Photo */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                  Receipt Photo (Optional)
+                </label>
+                <PhotoUpload
+                  onUpload={(file) => handlePhotoUpload(file, "edit")}
+                  existingPhoto={editExpense.photo || undefined}
+                  onRemove={() =>
+                    setEditExpense((prev) => ({ ...prev, photo: null }))
+                  }
+                />
               </div>
 
               {/* Who Paid */}

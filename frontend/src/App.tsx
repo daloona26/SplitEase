@@ -9,17 +9,22 @@ import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Register from "./pages/Signup";
 import Group from "./pages/Group";
-import Pricing from "./pages/Pricing"; // Import the Pricing component
+import Pricing from "./pages/Pricing";
 import Account from "./pages/Account";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "./components/LanguageSwitcher";
+import Navbar from "./components/Navbar";
+
 // Import other components as needed
 
 function App() {
+  const { t } = useTranslation();
   return (
     <Router>
       <ThemeProvider>
         <AuthProvider>
-          <div className="App">
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Register />} />

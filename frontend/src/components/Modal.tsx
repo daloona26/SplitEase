@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import { useTheme } from "../contexts/ThemeContext";
 
@@ -17,6 +18,7 @@ const Modal: React.FC<ModalProps> = ({
   children,
   size = "md",
 }) => {
+  const { t } = useTranslation();
   const { theme } = useTheme();
 
   const sizeClasses = {
@@ -50,7 +52,7 @@ const Modal: React.FC<ModalProps> = ({
           <button
             onClick={onClose}
             className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl p-2 transition-all duration-200"
-            aria-label="Close modal"
+            aria-label={t("Close modal")}
           >
             <X size={24} />
           </button>
