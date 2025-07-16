@@ -253,7 +253,7 @@ export default function Pricing() {
                     {isPageLoading ? (
                       <div className="animate-spin rounded-full h-4 w-4 xs:h-5 xs:w-5 border-b-2 border-white mr-2"></div>
                     ) : (
-                      "Start 7-Day Free Trial"
+                      "Start 3-Day Free Trial"
                     )}
                   </button>
                 )}
