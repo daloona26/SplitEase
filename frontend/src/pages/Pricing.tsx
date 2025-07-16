@@ -16,9 +16,6 @@ export default function Pricing() {
 
   const isPageLoading = authLoading || loading;
 
-  // IMPORTANT: Get PayPal Client ID and Plan IDs from frontend environment variables
-  // In a real application, these would be securely loaded from environment variables.
-  // For demonstration purposes, placeholders are used.
   const PAYPAL_CLIENT_ID =
     import.meta.env.VITE_PAYPAL_CLIENT_ID ||
     "YOUR_PAYPAL_CLIENT_ID_FROM_ENV_FALLBACK";
@@ -29,14 +26,11 @@ export default function Pricing() {
     import.meta.env.VITE_PAYPAL_YEARLY_PLAN_ID ||
     "YOUR_YEARLY_PAYPAL_PLAN_ID_FROM_ENV_FALLBACK";
 
-  // PayPal SDK options for PayPalScriptProvider
-  // 'vault=true' is crucial for subscriptions to allow recurring payments
-  // 'intent=subscription' explicitly tells the SDK this is for subscriptions
   const paypalScriptOptions = {
     clientId: PAYPAL_CLIENT_ID,
     currency: "USD",
-    vault: true, // Required for subscriptions
-    intent: "subscription", // Required for subscriptions
+    vault: true,
+    intent: "subscription",
     // For LIVE deployment: REMOVE the 'environment' line.
     // The SDK will automatically use the live environment if a live clientId is provided.
     // environment: "sandbox", // <-- THIS LINE IS REMOVED FOR LIVE DEPLOYMENT in production
@@ -45,32 +39,24 @@ export default function Pricing() {
   // Redirect logic, now dependent on authLoading to ensure user state is resolved
   useEffect(() => {
     if (!authLoading) {
-      // If user is NOT logged in, redirect to login
       if (!user) {
         navigate("/login");
         return;
       }
-      // If user IS subscribed, redirect to dashboard (they don't need pricing)
       if (user.isSubscribed) {
         navigate("/dashboard");
-        return; // Important to return after navigate
+        return;
       }
-      // If user is NOT subscribed but IS on an active trial,
-      // they are allowed to stay on the pricing page. No redirect here.
-      // If user is NOT subscribed and their trial has EXPIRED,
-      // they are also allowed to stay on the pricing page to subscribe. No redirect here.
     }
-  }, [user, navigate, authLoading]); // Add authLoading to dependencies
+  }, [user, navigate, authLoading]);
 
   // This function is called by the PayPalButtons SDK when the subscription is approved on PayPal's site.
   const onApprove = async (data: any, actions: any) => {
     setLoading(true);
     setError("");
     try {
-      // In a real app, you would likely verify the subscription with your backend here
-      // using data.subscriptionID. For this example, we just refresh the user.
-      await refreshUser(); // Fetch latest user status from backend
-      navigate("/dashboard?payment_status=success"); // Redirect to dashboard with success param
+      await refreshUser();
+      navigate("/dashboard?payment_status=success");
     } catch (error) {
       console.error("PayPal subscription approval error:", error);
       setError(
@@ -84,7 +70,6 @@ export default function Pricing() {
   // Handle errors from the PayPal button
   const onError = (err: any) => {
     console.error("PayPal button error:", err);
-    // Display a more user-friendly error if it's the "not configured" one
     if (
       err.message &&
       err.message.includes("PayPal Plan ID is not configured.")
@@ -106,11 +91,9 @@ export default function Pricing() {
     setError("");
     setLoading(true);
     try {
-      // Simulate API call to backend to start trial
-      // In a real app, this would be an actual API call, e.g.:
       const response = await api.post("/auth/start-trial");
       if (response.data && response.data.user && response.data.token) {
-        await refreshUser(); // Fetch latest user status from backend
+        await refreshUser();
         navigate("/dashboard?trial_status=activated");
       } else {
         throw new Error("Failed to activate free trial.");
@@ -126,8 +109,6 @@ export default function Pricing() {
     }
   };
 
-  // Show a full-page loading spinner if authentication is still loading
-  // or if a PayPal action is in progress.
   if (isPageLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950">
@@ -141,8 +122,6 @@ export default function Pricing() {
     );
   }
 
-  // If user is already subscribed (after loading is done), show nothing (redirect handled by useEffect)
-  // If user is on an active trial, they are allowed to see this page, so we don't return null here.
   if (user?.isSubscribed) return null;
 
   return (
@@ -223,17 +202,12 @@ export default function Pricing() {
               </h3>
               <div className="mt-3 xs:mt-4">
                 <span className="text-4xl xs:text-5xl font-bold text-blue-600 dark:text-blue-400">
-                  ${selectedPlan === "monthly" ? "5" : "30"}{" "}
+                  ${selectedPlan === "monthly" ? "2.99" : "24.99"}{" "}
                 </span>
                 <span className="text-slate-600 dark:text-slate-400 text-sm xs:text-base">
                   /{selectedPlan === "monthly" ? "month" : "year"}
                 </span>
               </div>
-              {selectedPlan === "yearly" && (
-                <div className="text-xs xs:text-sm text-green-600 dark:text-green-400 font-medium mt-1.5 xs:mt-2">
-                  Save $30 per year!
-                </div>
-              )}
             </div>
 
             <ul className="space-y-3 xs:space-y-4 mb-6 xs:mb-8">
