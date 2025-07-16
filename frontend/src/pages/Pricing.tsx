@@ -220,6 +220,9 @@ export default function Pricing() {
                 "Perfect for roommates & travelers",
                 "Secure data storage",
                 "Mobile-friendly interface",
+                "Recurring expenses – for rent, subscriptions",
+                "Bill photo attachments",
+                "Export to CSV or PDF",
               ].map((feature, index) => (
                 <li
                   key={index}
@@ -250,7 +253,7 @@ export default function Pricing() {
                     {isPageLoading ? (
                       <div className="animate-spin rounded-full h-4 w-4 xs:h-5 xs:w-5 border-b-2 border-white mr-2"></div>
                     ) : (
-                      "Start 3-Day Free Trial"
+                      "Start 7-Day Free Trial"
                     )}
                   </button>
                 )}
