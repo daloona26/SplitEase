@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
 import {
   Download,
   FileText,
@@ -27,7 +26,6 @@ export default function ExportModal({
   groupName,
   onExport,
 }: ExportModalProps) {
-  const { t } = useTranslation();
   const [exportFormat, setExportFormat] = useState<"csv" | "pdf">("csv");
   const [dateRange, setDateRange] = useState({
     start: "",
@@ -58,18 +56,18 @@ export default function ExportModal({
         <div className="p-6 border-b border-slate-200/50 dark:border-slate-700/50">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
-              {t("Export Data")}
+              {"Export Data"}
             </h2>
             <button
               onClick={onClose}
               className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg transition-colors"
-              aria-label={t("Close modal")}
+              aria-label={"Close modal"}
             >
               <X className="h-5 w-5" />
             </button>
           </div>
           <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
-            {t("Export expenses for", { groupName })}
+            {`Export expenses for ${groupName}`}
           </p>
         </div>
 
@@ -77,7 +75,7 @@ export default function ExportModal({
           {/* Export Format */}
           <div>
             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
-              {t("Export Format")}
+              {"Export Format"}
             </label>
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -89,7 +87,7 @@ export default function ExportModal({
                 }`}
               >
                 <FileText className="h-5 w-5 mr-2" />
-                {t("CSV")}
+                {"CSV"}
               </button>
               <button
                 onClick={() => setExportFormat("pdf")}
@@ -100,7 +98,7 @@ export default function ExportModal({
                 }`}
               >
                 <Download className="h-5 w-5 mr-2" />
-                {t("PDF")}
+                {"PDF"}
               </button>
             </div>
           </div>
@@ -108,12 +106,12 @@ export default function ExportModal({
           {/* Date Range */}
           <div>
             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
-              {t("Date Range (Optional)")}
+              {"Date Range (Optional)"}
             </label>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">
-                  {t("Start Date")}
+                  {"Start Date"}
                 </label>
                 <input
                   type="date"
@@ -126,7 +124,7 @@ export default function ExportModal({
               </div>
               <div>
                 <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">
-                  {t("End Date")}
+                  {"End Date"}
                 </label>
                 <input
                   type="date"
@@ -147,7 +145,7 @@ export default function ExportModal({
               disabled={isExporting}
               className="flex-1 px-4 py-3 text-slate-700 dark:text-slate-300 border-2 border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors font-semibold disabled:opacity-50"
             >
-              {t("Cancel")}
+              {"Cancel"}
             </button>
             <button
               onClick={handleExport}
@@ -157,12 +155,12 @@ export default function ExportModal({
               {isExporting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {t("Exporting...")}
+                  {"Exporting..."}
                 </>
               ) : (
                 <>
                   <Download className="h-4 w-4 mr-2" />
-                  {t("Export")} {exportFormat.toUpperCase()}
+                  {"Export"} {exportFormat.toUpperCase()}
                 </>
               )}
             </button>

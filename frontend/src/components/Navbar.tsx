@@ -1,9 +1,7 @@
 import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
-import LanguageSwitcher from "./LanguageSwitcher";
 import {
   Home,
   DollarSign,
@@ -18,7 +16,6 @@ import {
 } from "lucide-react";
 
 const Navbar: React.FC = () => {
-  const { t } = useTranslation();
   const { user, logout, isAuthenticated } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
@@ -39,19 +36,19 @@ const Navbar: React.FC = () => {
     {
       to: "/dashboard",
       icon: Home,
-      label: t("Dashboard"),
+      label: ("Dashboard"),
       protected: true,
     },
     {
       to: "/pricing",
       icon: DollarSign,
-      label: t("Pricing"),
+      label: ("Pricing"),
       protected: false,
     },
     {
       to: "/account",
       icon: User,
-      label: t("Account"),
+      label: ("Account"),
       protected: true,
     },
   ];
@@ -66,7 +63,7 @@ const Navbar: React.FC = () => {
               to="/"
               className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent"
             >
-              {t("SplitEase")}
+              {("SplitEase")}
             </Link>
           </div>
 
@@ -110,7 +107,6 @@ const Navbar: React.FC = () => {
               )}
             </button>
 
-
             {/* Desktop User Menu */}
             <div className="hidden md:flex items-center space-x-3">
               {isAuthenticated && user ? (
@@ -123,7 +119,7 @@ const Navbar: React.FC = () => {
                     className="flex items-center space-x-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                   >
                     <LogOut className="h-4 w-4" />
-                    <span>{t("Logout")}</span>
+                    <span>{("Logout")}</span>
                   </button>
                 </>
               ) : (
@@ -132,13 +128,13 @@ const Navbar: React.FC = () => {
                     to="/login"
                     className="text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                   >
-                    {t("Login")}
+                    {("Login")}
                   </Link>
                   <Link
                     to="/signup"
                     className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
-                    {t("Sign Up")}
+                    {("Sign Up")}
                   </Link>
                 </div>
               )}
@@ -190,14 +186,14 @@ const Navbar: React.FC = () => {
                 {isAuthenticated && user ? (
                   <>
                     <div className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400">
-                      {t("Signed in as")} {user.name || user.email}
+                      {("Signed in as")} {user.name || user.email}
                     </div>
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center space-x-3 px-3 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                     >
                       <LogOut className="h-5 w-5" />
-                      <span>{t("Logout")}</span>
+                      <span>{("Logout")}</span>
                     </button>
                   </>
                 ) : (
@@ -207,14 +203,14 @@ const Navbar: React.FC = () => {
                       onClick={() => setIsMobileMenuOpen(false)}
                       className="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                     >
-                      {t("Login")}
+                      {("Login")}
                     </Link>
                     <Link
                       to="/signup"
                       onClick={() => setIsMobileMenuOpen(false)}
                       className="block px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-center"
                     >
-                      {t("Sign Up")}
+                      {("Sign Up")}
                     </Link>
                   </div>
                 )}

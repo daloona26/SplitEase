@@ -12,14 +12,8 @@ import Group from "./pages/Group";
 import Pricing from "./pages/Pricing";
 import Account from "./pages/Account";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import { useTranslation } from "react-i18next";
-import LanguageSwitcher from "./components/LanguageSwitcher";
-import Navbar from "./components/Navbar";
-
-// Import other components as needed
 
 function App() {
-  const { t } = useTranslation();
   return (
     <Router>
       <ThemeProvider>

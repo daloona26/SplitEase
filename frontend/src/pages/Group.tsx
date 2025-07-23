@@ -640,7 +640,6 @@ export default function GroupEnhanced() {
   };
 
   // Export handler
-
   const handleExport = async (
     format: "csv" | "pdf",
     dateRange?: { start: string; end: string }
@@ -652,49 +651,39 @@ export default function GroupEnhanced() {
       const params = new URLSearchParams();
       if (dateRange?.start) params.append("startDate", dateRange.start);
       if (dateRange?.end) params.append("endDate", dateRange.end);
-      params.append("format", "base64"); // Request base64 encoded response
+      params.append("format", "base64");
       params.append("t", Date.now().toString());
 
-      const url = `/export/${groupId}/${format}?${params.toString()}`;
+      // CORRECTED URL for both CSV and PDF
+      const url = `/export/group/${groupId}/${format}?${params.toString()}`;
 
       try {
-        // First try: Get base64 encoded data
         const response = await api.get(url, {
-          headers: {
-            Accept: "application/json",
-            "Cache-Control": "no-cache",
-          },
+          headers: { Accept: "application/json", "Cache-Control": "no-cache" },
         });
 
         if (response.data && response.data.base64Data) {
-          // Decode base64 data
           const binaryString = atob(response.data.base64Data);
           const bytes = new Uint8Array(binaryString.length);
           for (let i = 0; i < binaryString.length; i++) {
             bytes[i] = binaryString.charCodeAt(i);
           }
-
           const blob = new Blob([bytes], {
-            type: format === "pdf" ? "application/pdf" : "text/csv",
+            type:
+              response.data.contentType ||
+              (format === "pdf" ? "application/pdf" : "text/csv"),
           });
-
-          // Create download
           const downloadUrl = window.URL.createObjectURL(blob);
           const link = document.createElement("a");
           link.href = downloadUrl;
-          link.download =
-            response.data.filename || `export_${Date.now()}.${format}`;
-          link.style.display = "none";
-
+          link.download = response.data.filename || `export.${format}`;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
-
-          setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 100);
-
+          window.URL.revokeObjectURL(downloadUrl);
           showMessageBox(
             "success",
-            `${format.toUpperCase()} export completed successfully!`
+            `${format.toUpperCase()} export completed!`
           );
           return;
         }
@@ -709,49 +698,28 @@ export default function GroupEnhanced() {
         if (dateRange?.end) blobParams.append("endDate", dateRange.end);
         blobParams.append("t", Date.now().toString());
 
-        const blobUrl = `/export/${groupId}/${format}?${blobParams.toString()}`;
+        // CORRECTED URL for both CSV and PDF
+        const blobUrl = `/export/group/${groupId}/${format}?${blobParams.toString()}`;
 
-        const blobResponse = await api.get(blobUrl, {
-          responseType: "blob",
-          headers: {
-            Accept: format === "pdf" ? "application/pdf" : "text/csv",
-            "Cache-Control": "no-cache",
-          },
-        });
-
+        const blobResponse = await api.get(blobUrl, { responseType: "blob" });
         const blob = new Blob([blobResponse.data], {
           type: format === "pdf" ? "application/pdf" : "text/csv",
         });
-
         const downloadUrl = window.URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = downloadUrl;
-
-        const timestamp = new Date()
-          .toISOString()
-          .slice(0, 19)
-          .replace(/:/g, "-");
-        link.download = `${
-          groupDetails?.name || "Group"
-        }_expenses_${timestamp}.${format}`;
-        link.style.display = "none";
-
+        link.download = `${groupDetails?.name || "export"}.${format}`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-
-        setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 100);
-
-        showMessageBox(
-          "success",
-          `${format.toUpperCase()} export completed successfully!`
-        );
+        window.URL.revokeObjectURL(downloadUrl);
+        showMessageBox("success", `${format.toUpperCase()} export completed!`);
         return;
       } catch (blobError) {
         console.log("Blob method failed, trying data URL method...");
       }
 
-      // Method 3: Data URL method (most aggressive bypass)
+      // Method 3: Data URL method
       try {
         const dataParams = new URLSearchParams();
         if (dateRange?.start) dataParams.append("startDate", dateRange.start);
@@ -759,29 +727,20 @@ export default function GroupEnhanced() {
         dataParams.append("format", "dataurl");
         dataParams.append("t", Date.now().toString());
 
-        const dataUrl = `/export/${groupId}/${format}?${dataParams.toString()}`;
-
-        const dataResponse = await api.get(dataUrl, {
-          headers: {
-            Accept: "application/json",
-            "Cache-Control": "no-cache",
-          },
-        });
+        // CORRECTED URL for both CSV and PDF
+        const dataUrlPath = `/export/group/${groupId}/${format}?${dataParams.toString()}`;
+        const dataResponse = await api.get(dataUrlPath);
 
         if (dataResponse.data && dataResponse.data.dataUrl) {
           const link = document.createElement("a");
           link.href = dataResponse.data.dataUrl;
-          link.download =
-            dataResponse.data.filename || `export_${Date.now()}.${format}`;
-          link.style.display = "none";
-
+          link.download = dataResponse.data.filename || `export.${format}`;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
-
           showMessageBox(
             "success",
-            `${format.toUpperCase()} export completed successfully!`
+            `${format.toUpperCase()} export completed!`
           );
           return;
         }
@@ -795,36 +754,28 @@ export default function GroupEnhanced() {
       if (dateRange?.end) iframeParams.append("endDate", dateRange.end);
       iframeParams.append("download", "true");
       iframeParams.append("t", Date.now().toString());
-
       const token = localStorage.getItem("token");
+
+      // CORRECTED URL for both CSV and PDF
       const iframeUrl = `${
         import.meta.env.VITE_API_URL || "http://localhost:5000"
-      }/export/${groupId}/${format}?${iframeParams.toString()}&token=${encodeURIComponent(
+      }/export/group/${groupId}/${format}?${iframeParams.toString()}&token=${encodeURIComponent(
         token || ""
       )}`;
 
       const iframe = document.createElement("iframe");
       iframe.style.display = "none";
       iframe.src = iframeUrl;
-
       document.body.appendChild(iframe);
-
       setTimeout(() => {
         if (iframe.parentNode) {
           document.body.removeChild(iframe);
         }
       }, 5000);
-
-      showMessageBox(
-        "info",
-        `${format.toUpperCase()} export initiated. The download should start shortly.`
-      );
+      showMessageBox("info", `${format.toUpperCase()} export initiated.`);
     } catch (error: any) {
       console.error("All export methods failed:", error);
-      showMessageBox(
-        "error",
-        "Failed to export data. Please check your internet connection and try again."
-      );
+      showMessageBox("error", "Failed to export data. Please try again.");
     } finally {
       setActionLoading((prev) => ({ ...prev, export: false }));
     }
