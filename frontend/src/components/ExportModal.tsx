@@ -1,48 +1,147 @@
+// frontend/src/components/ExportModal.tsx
+
 import React, { useState } from "react";
-import {
-  Download,
-  FileText,
-  Calendar,
-  DollarSign,
-  X,
-  Loader2,
-} from "lucide-react";
+import { Download, FileText, X, Loader2 } from "lucide-react";
+import { api } from "../contexts/AuthContext"; // Assuming you export 'api' from AuthContext
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
-interface ExportModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  groupId: string;
-  groupName: string;
-  onExport: (
-    format: "csv" | "pdf",
-    dateRange?: { start: string; end: string }
-  ) => Promise<void>;
-}
+// Helper function to generate HTML for the PDF report
+const generateHTMLReport = (expenses, balances, group) => {
+  const totalAmount = expenses.reduce(
+    (sum, exp) => sum + parseFloat(exp.amount || 0),
+    0
+  );
+  return `
+      <div style="font-family: Arial, sans-serif; margin: 20px; color: #333; width: 210mm;">
+        <h1 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">💰 Expense Report: ${
+          group.name
+        }</h1>
+        <h2 style="color: #34495e; margin-top: 30px; border-bottom: 1px solid #bdc3c7; padding-bottom: 5px;">📋 Expenses</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+          <thead><tr><th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #3498db; color: white;">Date</th><th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #3498db; color: white;">Description</th><th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #3498db; color: white;">Amount</th></tr></thead>
+          <tbody>${expenses
+            .map(
+              (e) =>
+                `<tr><td style="border: 1px solid #ddd; padding: 8px;">${new Date(
+                  e.expense_date
+                ).toLocaleDateString()}</td><td style="border: 1px solid #ddd; padding: 8px;">${
+                  e.description || "N/A"
+                }</td><td style="border: 1px solid #ddd; padding: 8px; text-align: right;">$${parseFloat(
+                  e.amount || 0
+                ).toFixed(2)}</td></tr>`
+            )
+            .join("")}</tbody>
+        </table>
+        <h2 style="color: #34495e; margin-top: 30px; border-bottom: 1px solid #bdc3c7; padding-bottom: 5px;">⚖️ Member Balances</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+          <thead><tr><th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #3498db; color: white;">Member</th><th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #3498db; color: white;">Balance</th></tr></thead>
+          <tbody>${balances
+            .map(
+              (b) =>
+                `<tr><td style="border: 1px solid #ddd; padding: 8px;">${
+                  b.name || "Unknown"
+                }</td><td style="border: 1px solid #ddd; padding: 8px; text-align: right; color: ${
+                  parseFloat(b.balance) >= 0 ? "#27ae60" : "#e74c3c"
+                };">$${parseFloat(b.balance || 0).toFixed(2)}</td></tr>`
+            )
+            .join("")}</tbody>
+        </table>
+      </div>
+    `;
+};
 
-export default function ExportModal({
-  isOpen,
-  onClose,
-  groupId,
-  groupName,
-  onExport,
-}: ExportModalProps) {
-  const [exportFormat, setExportFormat] = useState<"csv" | "pdf">("csv");
-  const [dateRange, setDateRange] = useState({
-    start: "",
-    end: "",
+// Helper function to generate CSV content
+
+const createCsvContent = (expenses) => {
+  const headers = [
+    "Date",
+    "Description",
+    "Amount",
+    "Category",
+    "Payers",
+    "Participants",
+  ];
+  const rows = expenses.map((expense) => {
+    const dateString = expense.expense_date
+      ? new Date(expense.expense_date).toLocaleDateString()
+      : "N/A";
+
+    // =================================================================
+    // THE FIX IS HERE: Use parseFloat() to convert the amount string to a number
+    // =================================================================
+    const amount = (parseFloat(expense.amount) || 0).toFixed(2);
+
+    return [
+      dateString,
+      `"${expense.description || ""}"`,
+      amount, // Use the corrected amount variable
+      expense.category || "",
+      `"${expense.payers || ""}"`,
+      `"${expense.participants || ""}"`,
+    ].join(",");
   });
+  return [headers.join(","), ...rows].join("\n");
+};
+
+export default function ExportModal({ isOpen, onClose, groupId, groupName }) {
+  const [exportFormat, setExportFormat] = useState("csv");
+  const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      await onExport(
-        exportFormat,
-        dateRange.start && dateRange.end ? dateRange : undefined
+      // 1. Fetch data from the new, single backend endpoint
+      const params = new URLSearchParams();
+      if (dateRange.start) params.append("startDate", dateRange.start);
+      if (dateRange.end) params.append("endDate", dateRange.end);
+
+      const response = await api.get(
+        `/export/group/${groupId}/data?${params.toString()}`
       );
+      const { expenses, balances, group } = response.data;
+
+      const fileName = `${group.name.replace(/[^a-zA-Z0-9]/g, "_")}_report`;
+
+      if (exportFormat === "csv") {
+        // =================================================================
+        // THE FIX IS HERE
+        // =================================================================
+        const csvContent = createCsvContent(expenses);
+        const blob = new Blob([csvContent], {
+          type: "text/csv;charset=utf-8;",
+        });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `${fileName}.csv`); // Set the filename here
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click(); // This triggers the download
+        document.body.removeChild(link); // Clean up the link
+        // =================================================================
+      } else {
+        // PDF
+        const reportElement = document.createElement("div");
+        reportElement.innerHTML = generateHTMLReport(expenses, balances, group);
+        document.body.appendChild(reportElement);
+
+        const canvas = await html2canvas(reportElement, { scale: 2 }); // Increase scale for better quality
+        const imgData = canvas.toDataURL("image/png");
+
+        const pdf = new jsPDF("p", "mm", "a4");
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`${fileName}.pdf`);
+
+        document.body.removeChild(reportElement);
+      }
       onClose();
     } catch (error) {
       console.error("Export failed:", error);
+      // You can add a user-facing error message here
     } finally {
       setIsExporting(false);
     }
@@ -51,117 +150,77 @@ export default function ExportModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-2xl xs:rounded-3xl shadow-2xl max-w-md w-full border border-white/20 dark:border-slate-700/50">
-        <div className="p-6 border-b border-slate-200/50 dark:border-slate-700/50">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
-              {"Export Data"}
-            </h2>
-            <button
-              onClick={onClose}
-              className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg transition-colors"
-              aria-label={"Close modal"}
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
-            {`Export expenses for ${groupName}`}
-          </p>
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full">
+        <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+          <h2 className="text-xl font-bold text-slate-800 dark:text-white">
+            Export Report for {groupName}
+          </h2>
+          <button onClick={onClose}>
+            <X className="h-5 w-5" />
+          </button>
         </div>
-
         <div className="p-6 space-y-6">
-          {/* Export Format */}
           <div>
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
-              {"Export Format"}
+            <label className="block text-sm font-semibold mb-3">
+              Export Format
             </label>
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => setExportFormat("csv")}
-                className={`flex items-center justify-center p-4 rounded-xl border-2 transition-all ${
+                className={`p-4 rounded-xl border-2 ${
                   exportFormat === "csv"
-                    ? "bg-blue-50 dark:bg-blue-900/50 border-blue-300 dark:border-blue-600 text-blue-700 dark:text-blue-300"
-                    : "bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600"
+                    ? "border-blue-500 bg-blue-50"
+                    : "border-slate-300"
                 }`}
               >
-                <FileText className="h-5 w-5 mr-2" />
-                {"CSV"}
+                <FileText className="mx-auto" />
               </button>
               <button
                 onClick={() => setExportFormat("pdf")}
-                className={`flex items-center justify-center p-4 rounded-xl border-2 transition-all ${
+                className={`p-4 rounded-xl border-2 ${
                   exportFormat === "pdf"
-                    ? "bg-red-50 dark:bg-red-900/50 border-red-300 dark:border-red-600 text-red-700 dark:text-red-300"
-                    : "bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600"
+                    ? "border-red-500 bg-red-50"
+                    : "border-slate-300"
                 }`}
               >
-                <Download className="h-5 w-5 mr-2" />
-                {"PDF"}
+                <Download className="mx-auto" />
               </button>
             </div>
           </div>
-
-          {/* Date Range */}
           <div>
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
-              {"Date Range (Optional)"}
+            <label className="block text-sm font-semibold mb-3">
+              Date Range (Optional)
             </label>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">
-                  {"Start Date"}
-                </label>
-                <input
-                  type="date"
-                  value={dateRange.start}
-                  onChange={(e) =>
-                    setDateRange((prev) => ({ ...prev, start: e.target.value }))
-                  }
-                  className="w-full px-3 py-2 border-2 border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white/50 dark:bg-slate-700/50 text-sm text-slate-700 dark:text-slate-200"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">
-                  {"End Date"}
-                </label>
-                <input
-                  type="date"
-                  value={dateRange.end}
-                  onChange={(e) =>
-                    setDateRange((prev) => ({ ...prev, end: e.target.value }))
-                  }
-                  className="w-full px-3 py-2 border-2 border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white/50 dark:bg-slate-700/50 text-sm text-slate-700 dark:text-slate-200"
-                />
-              </div>
+              <input
+                type="date"
+                value={dateRange.start}
+                onChange={(e) =>
+                  setDateRange((p) => ({ ...p, start: e.target.value }))
+                }
+                className="w-full p-2 border-2 rounded-lg"
+              />
+              <input
+                type="date"
+                value={dateRange.end}
+                onChange={(e) =>
+                  setDateRange((p) => ({ ...p, end: e.target.value }))
+                }
+                className="w-full p-2 border-2 rounded-lg"
+              />
             </div>
           </div>
-
-          {/* Actions */}
-          <div className="flex space-x-3 pt-4">
-            <button
-              onClick={onClose}
-              disabled={isExporting}
-              className="flex-1 px-4 py-3 text-slate-700 dark:text-slate-300 border-2 border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors font-semibold disabled:opacity-50"
-            >
-              {"Cancel"}
-            </button>
+          <div className="pt-4">
             <button
               onClick={handleExport}
               disabled={isExporting}
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 text-white rounded-xl hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center font-semibold"
+              className="w-full px-4 py-3 bg-blue-600 text-white rounded-xl flex items-center justify-center font-semibold disabled:opacity-50"
             >
               {isExporting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {"Exporting..."}
-                </>
+                <Loader2 className="animate-spin" />
               ) : (
-                <>
-                  <Download className="h-4 w-4 mr-2" />
-                  {"Export"} {exportFormat.toUpperCase()}
-                </>
+                `Export ${exportFormat.toUpperCase()}`
               )}
             </button>
           </div>
