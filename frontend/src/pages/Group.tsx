@@ -798,7 +798,7 @@ export default function GroupEnhanced() {
 
       const token = localStorage.getItem("token");
       const iframeUrl = `${
-        import.meta.env.VITE_API_URL || "http://localhost:5000"
+        import.meta.env.VITE_BACKEND_URL || "http://localhost:5000"
       }/export/${groupId}/${format}?${iframeParams.toString()}&token=${encodeURIComponent(
         token || ""
       )}`;
